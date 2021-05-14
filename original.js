@@ -152,27 +152,53 @@ function displayToastAlert(message) {
 //IMPORTING TRADE FILES FROM GOOGLE DRIVE INTO TRADE CREATE TAB 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//imports trades from Clearlist GD + moves the trade file to Archive  
-function importFromCSV() {
-  // read all files in the clearlist-prod-data > incoming  ->  https://drive.google.com/drive/folders/1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU 
-  var mainFolder = DriveApp.getFolderById("1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU");
-  var f = mainFolder.getFiles();
+//imports trades from Clearlist GD + moves the trade file to Archive 
 
+var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
+var clearlistMainFolderId = "1R6qpWVFjziwHMWfCvJOu9jqJwOrmFhJ1";
+var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
+var clearlistTradesImportSheet = "CL Trade Create";
+var sharenettMainFolderId = "1Wa2gaF_DAepjRVyX9GIXGNISnPHyEk4N";
+var sharenettFilePattern = "^SHARE.2021" + "[0-9]{4}" + ".csv";
+var sharenettTradesImportSheet = "SN Trade Create";
+
+function importTradesCL(){
+  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistFilePattern, clearlistTradesImportSheet)
+}
+
+function importTradesSN(){
+  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettFilePattern, sharenettTradesImportSheet)
+}
+
+function importAllTrade(){
+  importTradesCL()
+  importTradesSN()
+}
+
+function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePattern, writeToSheetName) {
+  var mainFolder = DriveApp.getFolderById(masterIncomingFolderId);
+  var f = mainFolder.getFiles();
   var blankfile = [];
 
-  // create today date folder in Archive_Of_Trade_Files
-  var archivefolderid = "18vPPMxZPTIEeXJ-rruva7KAcVy7aXZ37";
+  // ATS -> ATS archive -> Empty Files Folder / yyyy-MM -> MM-dd-yyyy [MODIFIED: WHEN WE ADD NEW ATS]
+  if (importFilePattern.search("CLEAR") != -1){
+    archiveFolderID = createFolder(mainAtsFolderID, "CL_Archive_Trades");
+    emptyFolderID = createFolder(archiveFolderID, "CL_Empty_Files");
+  }else if(importFilePattern.search("SHARE")!=-1){
+    archiveFolderID = createFolder(mainAtsFolderID, "SN_Archive_Trades");
+    emptyFolderID = createFolder(archiveFolderID, "SN_Empty_Files");
+  }
+
+  var monthfolder = Utilities.formatDate(new Date(), timeZone, "yyyy-MM");
+  var monthfolderid = createFolder(archiveFolderID, monthfolder);
   var todaydatefolder = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy");
-  var todaydatefolderid = createFolder(archivefolderid, todaydatefolder);
-  Logger.log(todaydatefolderid);
-  var dest_folder = DriveApp.getFolderById(todaydatefolderid);
-  var empty_folder = DriveApp.getFolderById("1A8C1TJhtjt-hi_4lMAVJTWi2vMYIuCFu");
+  var todaydatefolderid = createFolder(monthfolderid, todaydatefolder);
+  var destfolder = DriveApp.getFolderById(todaydatefolderid);
+  var emptyfolder = DriveApp.getFolderById(emptyFolderID);
 
-
-  // import csv with CLEAR.2021xxxx.csv and check whether it's empty
   while (f.hasNext()) {
     var file = f.next();
-    var regExp = new RegExp("^CLEAR.2021" + "[0-9]{4}" + ".csv")
+    var regExp = new RegExp(importFilePattern)
 
     if (file.getName().search(regExp) != -1) {
       name = file.getName();
@@ -180,19 +206,19 @@ function importFromCSV() {
       try {
         var contents = Utilities.parseCsv(file.getBlob().getDataAsString());
         var header = contents.shift(); // remove header of the files
-        // writeDataToSheet(contents);
-        writeDataToSheet1(tradesImportSheet, "B:B", contents);
-        Logger.log("finish input")
-        file.moveTo(dest_folder);
+        writeDataToSheet(writeToSheetName, "B:B", 2, contents);
+        file.moveTo(destfolder);
       } catch (err) {
         Logger.log(err);
         blankfile.push(name);
-        file.moveTo(empty_folder);
+        file.moveTo(emptyfolder);
       }
     }
   };
   return blankfile;
 }
+
+
 
 //creates folders in Archive folders
 //used by importFromCSV
@@ -221,19 +247,17 @@ function createFolder(folderID, folderName) {
 
 // reads the contents of the csv and adds them into the sheet line by line 
 // since might have multiple files -> should check where is the last row and append it 
-function writeDataToSheet(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesImportSheet);
-  var last_rows = getLastRow(tradesImportSheet, "B:B");
-  ss.getRange(last_rows + 1, 2, data.length, data[0].length).setValues(data);
+function writeDataToSheet(writeToSheetName,rangeInTab, startColInTab, dataToWrite) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(writeToSheetName);
+  var last_rows = getLastRow(writeToSheetName, rangeInTab);
+  ss.getRange(last_rows + 1, startColInTab, dataToWrite.length, dataToWrite[0].length).setValues(dataToWrite);
 }
 
 
 
-function writeDataToSheet1(sheet_to_write,rangeInTab, dataToWrite) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet_to_write);
-  var last_rows = getLastRow(sheet_to_write, rangeInTab);
-  ss.getRange(last_rows + 1, 2, dataToWrite.length, dataToWrite[0].length).setValues(dataToWrite);
-}
+
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -401,6 +425,8 @@ function writeDataToSheetLIFECYCLE(data) {
 }
 
 
+
+
 function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
   // read all files in the Clearlist -> Ops -> BAU folders -> new clearlist trade files -> folder id: 1ylVnMiFV4pkas5X5sPkcNsI-2VKoU_eW
   // read all files in the https://drive.google.com/drive/folders/1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU -> folder id: 1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU
@@ -411,10 +437,12 @@ function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
   var archivefolderid = "1Cg6P9npX90iwMsHwsZzPQo1JOGMDRDSu";
   var todaydatefolder = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy");
   var todaydatefolderid = createFolder(archivefolderid, todaydatefolder);
-  //var uploadclearlistfolderid = createFolder(todaydatefolderid,"Uploaded_Clearlist_Trade_Files");
   var dest_folder = DriveApp.getFolderById(todaydatefolderid);
   var empty_folder = DriveApp.getFolderById("1Q1Eivg96Vg80FEsYig7gnHKKxKKcJOT-");
-  var todaydatefolderid_bau = createFolder("1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt", todaydatefolder);
+
+  var monthdatefolder = Utilities.formatDate(new Date(), timeZone, "yyyy-MM");
+  var monthfolderid_bau = createFolder("1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt", monthdatefolder);
+  var todaydatefolderid_bau = createFolder(monthfolderid_bau, todaydatefolder);
   var uploadtacfolderid = createFolder(todaydatefolderid_bau, "LIFECYCLE_Files");
   var dest_bau_tac_folder = DriveApp.getFolderById(uploadtacfolderid);
 
@@ -422,7 +450,6 @@ function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
 
   while (f.hasNext()) {
     var file = f.next();
-    //var regExp = new RegExp("^CLEAR.20210205.csv$");
     var regExp = new RegExp("LIFECYCLE.csv$")
 
     if (file.getName().search(regExp) != -1) {
@@ -433,7 +460,7 @@ function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
         // remove header of the files
         var header = contents.shift();
         writeDataToSheetLIFECYCLE(contents);
-        //file.copyTo(dest_bau_tac_folder);
+        // file.copyTo(dest_bau_tac_folder);
         file.moveTo(dest_folder);
       } catch (err) {
         Logger.log(err);
@@ -443,8 +470,6 @@ function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
     }
   };
   return blankfile;
-  //Logger.log(blankfile);
-  //displayToastAlert("The CSV file was successfully imported into ");
 }
 
 
