@@ -1,15 +1,28 @@
+
 // global variables
+var timeZone = "EST";
 var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
-var clearlistMainFolderId = "1R6qpWVFjziwHMWfCvJOu9jqJwOrmFhJ1";
+var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
 var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
 var clearlistTradesImportSheet = "CL Trade Create";
-var sharenettMainFolderId = "1Wa2gaF_DAepjRVyX9GIXGNISnPHyEk4N";
+var sharenettMainFolderId = "1mQLc12L--kCPE4ICZ7upfMy4XFzgkVN1";
 var sharenettFilePattern = "^SHARE.2021" + "[0-9]{4}" + ".csv";
 var sharenettTradesImportSheet = "SN Trade Create";
-
+var rangeInTab = "B:B";
+var startColInTab = 2;
 
 
 // general function which can be reused
+function getLastRow(shName, range) {
+  Logger.log("Start function: getLastRow of " + shName)
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(shName)
+  var Avals = ss.getRange(range).getValues();
+  var Alast = Avals.filter(String).length;
+  Logger.log("End function: getLastRow")
+  return Alast
+}
+
+
 function createFolder(folderID, folderName) {
   var parentFolder = DriveApp.getFolderById(folderID);
   var subFolders = parentFolder.getFolders();
@@ -40,19 +53,16 @@ function writeDataToSheet(writeToSheetName,rangeInTab, startColInTab, dataToWrit
 }
 
 
-function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePattern, writeToSheetName) {
+function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePattern, writeToSheetName, rangeInTab, startColInTab) {
   var mainFolder = DriveApp.getFolderById(masterIncomingFolderId);
   var f = mainFolder.getFiles();
   var blankfile = [];
 
   // ATS -> ATS archive -> Empty Files Folder / yyyy-MM -> MM-dd-yyyy [MODIFIED: WHEN WE ADD NEW ATS]
-  if (importFilePattern.search("CLEAR") != -1){
-    archiveFolderID = createFolder(mainAtsFolderID, "CL_Archive_Trades");
-    emptyFolderID = createFolder(archiveFolderID, "CL_Empty_Files");
-  }else if(importFilePattern.search("SHARE")!=-1){
-    archiveFolderID = createFolder(mainAtsFolderID, "SN_Archive_Trades");
-    emptyFolderID = createFolder(archiveFolderID, "SN_Empty_Files");
-  }
+  var atsname = writeToSheetName.substring(0, 2);
+  Logger.log(atsname);
+  archiveFolderID = createFolder(mainAtsFolderID, atsname+"_Archive_Trades");
+  emptyFolderID = createFolder(archiveFolderID, atsname+"_Empty_Files");
 
   var monthfolder = Utilities.formatDate(new Date(), timeZone, "yyyy-MM");
   var monthfolderid = createFolder(archiveFolderID, monthfolder);
@@ -70,7 +80,7 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePatter
       try {
         var contents = Utilities.parseCsv(file.getBlob().getDataAsString());
         var header = contents.shift(); // remove header of the files
-        writeDataToSheet(writeToSheetName, "B:B", 2, contents);
+        writeDataToSheet(writeToSheetName, rangeInTab, startColInTab, contents);
         file.moveTo(destfolder);
       } catch (err) {
         Logger.log(err);
@@ -87,12 +97,12 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePatter
 
 // use general function code
 function importTradesCL(){
-  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistFilePattern, clearlistTradesImportSheet)
-}
-function importTradesSN(){
-  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettFilePattern, sharenettTradesImportSheet)
+  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistFilePattern, clearlistTradesImportSheet, rangeInTab, startColInTab)
 }
 
+function importTradesSN(){
+  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettFilePattern, sharenettTradesImportSheet, rangeInTab, startColInTab)
+}
 
 
 // combine different functions code
@@ -101,7 +111,6 @@ function importAllTrade(){
   importTradesCL()
   importTradesSN()
 }
-
 
 
 
