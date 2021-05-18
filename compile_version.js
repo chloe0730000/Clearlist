@@ -1,15 +1,29 @@
-
 // global variables
 var timeZone = "EST";
+
 var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
+
 var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
+var clearlistTradeArchiveFolderId = "1vvU-7euhVR8kFoaQNUNMpfNqxO9nUrNg";
+var clearlistLifecycleArchiveFolderId = "1TPtAX0yeAKpm0F1ald_7QhcVnObrL83f";
 var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
+var clearlistLifecyclePattern =  "^CLEAR.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
 var clearlistTradesImportSheet = "CL Trade Create";
+var clearlistLifecycleImportSheet = "LIFECYCLE";
+
 var sharenettMainFolderId = "1mQLc12L--kCPE4ICZ7upfMy4XFzgkVN1";
+var sharenettTradeArchiveFolderId = "1Gw_p-h9_jAgiZ_v3uxZZySVbLvtP8LLN";
+var sharenettLifecycleArchiveFolderId = "11Oilu8FRPi1C9M7iehswexX0F6oPMfnW";
 var sharenettFilePattern = "^SHARE.2021" + "[0-9]{4}" + ".csv";
+var sharenettLifecyclePattern =  "^SHARE.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
 var sharenettTradesImportSheet = "SN Trade Create";
-var rangeInTab = "B:B";
-var startColInTab = 2;
+var sharenettLifecycleImportSheet = "LIFECYCLE";
+
+var rangeInTradeTab = "B:B";
+var startColInTradeTab = 2;
+var rangeInLifecycleTab = "A:A";
+var startColInLifecycleTab = 1;
+
 
 
 // general function which can be reused
@@ -53,19 +67,16 @@ function writeDataToSheet(writeToSheetName,rangeInTab, startColInTab, dataToWrit
 }
 
 
-function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePattern, writeToSheetName, rangeInTab, startColInTab) {
+function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolderID, importFilePattern, writeToSheetName, rangeInTab, startColInTab) {
   var mainFolder = DriveApp.getFolderById(masterIncomingFolderId);
   var f = mainFolder.getFiles();
   var blankfile = [];
 
-  // ATS -> ATS archive -> Empty Files Folder / yyyy-MM -> MM-dd-yyyy [MODIFIED: WHEN WE ADD NEW ATS]
-  var atsname = writeToSheetName.substring(0, 2);
-  Logger.log(atsname);
-  archiveFolderID = createFolder(mainAtsFolderID, atsname+"_Archive_Trades");
-  emptyFolderID = createFolder(archiveFolderID, atsname+"_Empty_Files");
+  // ATS -> ATS archive -> Empty Files Folder / yyyy-MM -> MM-dd-yyyy
+  emptyFolderID = createFolder(archiveAtsFolderID, "Empty_Files");
 
   var monthfolder = Utilities.formatDate(new Date(), timeZone, "yyyy-MM");
-  var monthfolderid = createFolder(archiveFolderID, monthfolder);
+  var monthfolderid = createFolder(archiveAtsFolderID, monthfolder);
   var todaydatefolder = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy");
   var todaydatefolderid = createFolder(monthfolderid, todaydatefolder);
   var destfolder = DriveApp.getFolderById(todaydatefolderid);
@@ -77,6 +88,7 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePatter
 
     if (file.getName().search(regExp) != -1) {
       name = file.getName();
+      Logger.log(name);
       try {
         var contents = Utilities.parseCsv(file.getBlob().getDataAsString());
         var header = contents.shift(); // remove header of the files
@@ -95,15 +107,23 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, importFilePatter
 
 
 
+
 // use general function code
 function importTradesCL(){
-  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistFilePattern, clearlistTradesImportSheet, rangeInTab, startColInTab)
+  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistTradeArchiveFolderId ,clearlistFilePattern, clearlistTradesImportSheet, rangeInTradeTab, startColInTradeTab)
 }
 
 function importTradesSN(){
-  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettFilePattern, sharenettTradesImportSheet, rangeInTab, startColInTab)
+  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettTradeArchiveFolderId,sharenettFilePattern, sharenettTradesImportSheet, rangeInTradeTab, startColInTradeTab)
 }
 
+function importLifecycleCL(){
+  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistLifecycleArchiveFolderId, clearlistLifecyclePattern, clearlistLifecycleImportSheet, rangeInLifecycleTab, startColInLifecycleTab)
+}
+
+function importLifecycleSN(){
+  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettLifecycleArchiveFolderId, sharenettLifecyclePattern, sharenettLifecycleImportSheet, rangeInLifecycleTab, startColInLifecycleTab)
+}
 
 // combine different functions code
 
@@ -113,6 +133,10 @@ function importAllTrade(){
 }
 
 
+function importAllLifecycle(){
+  importLifecycleCL()
+  importLifecycleSN()
+}
 
 
 
