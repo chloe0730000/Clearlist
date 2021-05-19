@@ -1,3 +1,4 @@
+
 // global variables
 var timeZone = "EST";
 
@@ -6,24 +7,32 @@ var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
 var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
 var clearlistTradeArchiveFolderId = "1vvU-7euhVR8kFoaQNUNMpfNqxO9nUrNg";
 var clearlistLifecycleArchiveFolderId = "1TPtAX0yeAKpm0F1ald_7QhcVnObrL83f";
-var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
-var clearlistLifecyclePattern =  "^CLEAR.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
-var clearlistTradesImportSheet = "CL Trade Create";
-var clearlistLifecycleImportSheet = "LIFECYCLE";
-
+var clearlistTacArchiveFolderId = "1CxrW1HlBR-WpPihqDx5zv281G2AI1jtE";
 var sharenettMainFolderId = "1mQLc12L--kCPE4ICZ7upfMy4XFzgkVN1";
 var sharenettTradeArchiveFolderId = "1Gw_p-h9_jAgiZ_v3uxZZySVbLvtP8LLN";
 var sharenettLifecycleArchiveFolderId = "11Oilu8FRPi1C9M7iehswexX0F6oPMfnW";
+var sharenettTacArchiveFolderId = "16fZDLgdPQsY8kcwSUr9sqU6yliUg8iJy";
+
+var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
+var clearlistLifecyclePattern =  "^CLEAR.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
+var clearlistTacPattern = "tac_file_clearlist";
 var sharenettFilePattern = "^SHARE.2021" + "[0-9]{4}" + ".csv";
 var sharenettLifecyclePattern =  "^SHARE.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
+var sharenettTacPattern = "tac_file_sharenett";
+
+var clearlistTradesImportSheet = "CL Trade Create";
+var clearlistLifecycleImportSheet = "LIFECYCLE";
+var clearlistTacImportSheet = "TAC";
 var sharenettTradesImportSheet = "SN Trade Create";
 var sharenettLifecycleImportSheet = "LIFECYCLE";
+var sharenettTacImportSheet = "TAC";
 
 var rangeInTradeTab = "B:B";
 var startColInTradeTab = 2;
 var rangeInLifecycleTab = "A:A";
 var startColInLifecycleTab = 1;
-
+var rangeInTacTab = "A:A";
+var startColInTacTab = 1;
 
 
 // general function which can be reused
@@ -125,6 +134,14 @@ function importLifecycleSN(){
   importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettLifecycleArchiveFolderId, sharenettLifecyclePattern, sharenettLifecycleImportSheet, rangeInLifecycleTab, startColInLifecycleTab)
 }
 
+function importTacCL(){
+  importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistTacArchiveFolderId, clearlistTacPattern, clearlistTacImportSheet, rangeInTacTab, startColInTacTab)
+}
+
+function importTacSN(){
+  importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettTacArchiveFolderId, sharenettTacPattern, sharenettTacImportSheet, rangeInTacTab, startColInTacTab)
+}
+
 // combine different functions code
 
 function importAllTrade(){
@@ -138,6 +155,7 @@ function importAllLifecycle(){
   importLifecycleSN()
 }
 
-
-
-
+function importAllTac(){
+  importTacCL()
+  importTacSN()
+}
