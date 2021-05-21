@@ -2,7 +2,9 @@
 // global variables
 var timeZone = "EST";
 
+var bauFolderId = "1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt";
 var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
+var masterOutgoingArchiveFolderId = "12zP8IamGqA5L_Kf-NpfzUXynmhlabvwu";
 
 var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
 var clearlistTradeArchiveFolderId = "1vvU-7euhVR8kFoaQNUNMpfNqxO9nUrNg";
@@ -33,6 +35,17 @@ var rangeInLifecycleTab = "A:A";
 var startColInLifecycleTab = 1;
 var rangeInTacTab = "A:A";
 var startColInTacTab = 1;
+
+
+var todaytradeoutputFolderName = "Todays_Trades_Export";
+var todayTradeRange = "B2:AH";
+var todayTradeOutputRange = "B2:R";
+var todayTradeOutputFilter = ["PENDING", "SENT"];
+var todayTradeOutputColFilter = [0,33];
+var clearlistTradesLedger = "CL Todays Trades";
+var sharenettTradesLedger = "SN Todays Trades";
+var todayTradeInsertValueCol = "AI";
+
 
 
 // general function which can be reused
@@ -76,6 +89,7 @@ function writeDataToSheet(writeToSheetName,rangeInTab, startColInTab, dataToWrit
 }
 
 
+// trade create
 function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolderID, importFilePattern, writeToSheetName, rangeInTab, startColInTab) {
   var mainFolder = DriveApp.getFolderById(masterIncomingFolderId);
   var f = mainFolder.getFiles();
@@ -114,10 +128,97 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolder
 }
 
 
+// today trade make as csv
+
+function convertToCSVWithChecks(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
+  //var totalRows = ss.getLastRow()
+  var totalRows = totalRows + 1; // add first row back 
+
+  var notation = todayTradeRange + totalRows
+  var notation2 = outputTradeRange + totalRows
+  var data = ss.getRange(notation).getValues()
+  var data2 = ss.getRange(notation2).getValues()
+  // get available data range in the spreadsheet
+
+  if (todayTradeOutputFilter.length>0){
+
+    try {
+      //var data = activeRange.getValues();
+      var csvFile = undefined;
+
+      // loop through the data in the range and build a string with the csv data
+      if (data.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data.length; row++) {
+          //Logger.log("data row "+data[row][0])
+          // PROCESSING used to say NEW
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
+            if (data[row][todayTradeOutputColFilter[1]] != todayTradeOutputFilter[1]) {
+              var change_row_number = row + 2;
+
+              // join each row's columns
+              // add a carriage return to end of each row, except for the last one
+              if (row < data2.length - 1) {
+                csv += data2[row].join(",") + "\r\n";
+              }
+              else {
+                csv += data2[row];
+                Logger.log("Adding row to CSV")
+              }
+              if (change_row_number != 2) {
+                ss.getRange(todayTradeInsertValueCol + change_row_number).setValue("SENT");
+              }
+            }
+          }
+        }
+        csvFile = csv;
+      }
+      return csvFile;
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+  }
+}
+
+function convertToCSVWithChecksandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileOutputFolderId1, fileOutputFolder1Name, fileOutputFolderId2, ledgerRange, ledgerOutputRange, ledgerOutputFilter,ledgerOutputColFilter, ledgerInsertValueCol) {
+
+  Logger.log("Start function convertTodaysTradeIntoCSVWithNEWTradesOnly")
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(fileToConvertCsv);
+  var totalRows = getLastRow(fileToConvertCsv, rangeInTab);
+
+  var timeZone = "EST";
+  var monthfolder = Utilities.formatDate(new Date(), timeZone, "yyyy-MM");
+  var monthfolderid = createFolder(fileOutputFolderId1, monthfolder);
+  var todaydatefolder = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy");
+  var todaydatefolderid = createFolder(monthfolderid, todaydatefolder);
+  var todaysPendingTradesFolderID = createFolder(todaydatefolderid, fileOutputFolder1Name);
+
+  var dest_folder = DriveApp.getFolderById(todaysPendingTradesFolderID);
+  var clearlist_outgoing_folder = DriveApp.getFolderById(fileOutputFolderId2);
+  
+  var dateFormatted = Utilities.formatDate(new Date(), timeZone, "yyyyMMdd");
+  var d = new Date();
+  var currentTime = d.getHours();
+  
+  // convert all available sheet data to csv format
+  var csvFile = convertToCSVWithChecks(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
+  // create a file in the Docs List with the given name and the csv data
+  var atsName = ss.getName().split(" ")[0];
+  var outputFileName = ss.getName().replace(atsName,'').replace(" ",'').replace(" ",'');
+  var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
+  var file = dest_folder.createFile(fileName, csvFile);
+  var file_output2 = clearlist_outgoing_folder.createFile(fileName, csvFile);
+  Logger.log("End function convertTodaysTradeIntoCSVWithNEWTradesOnly")
+  return fileName;
+}
 
 
 
 // use general function code
+
+// trade create part
 function importTradesCL(){
   importFromCSV(masterIncomingFolderId, clearlistMainFolderId, clearlistTradeArchiveFolderId ,clearlistFilePattern, clearlistTradesImportSheet, rangeInTradeTab, startColInTradeTab)
 }
@@ -142,6 +243,14 @@ function importTacSN(){
   importFromCSV(masterIncomingFolderId, sharenettMainFolderId, sharenettTacArchiveFolderId, sharenettTacPattern, sharenettTacImportSheet, rangeInTacTab, startColInTacTab)
 }
 
+
+// today trade part
+
+function tradeCreatedCL(){
+  convertToCSVWithChecksandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+}
+
+
 // combine different functions code
 
 function importAllTrade(){
@@ -159,3 +268,5 @@ function importAllTac(){
   importTacCL()
   importTacSN()
 }
+
+
