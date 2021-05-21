@@ -346,7 +346,6 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
     }
     catch (err) {
       Logger.log(err);
-      Browser.msgBox(err);
     }
   }else if (todayTradeOutputFilter.length>0){
     Logger.log("With Filter");
@@ -385,7 +384,6 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
     }
     catch (err) {
       Logger.log(err);
-      Browser.msgBox(err);
     }
   }
 }
@@ -431,11 +429,11 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
 }
 
 
-function tradeCreatedCL(){
+function downloadPendingTradesCSVCL(){
   convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
 }
 
-function tradeCreatedSN(){
+function downloadPendingTradesCSVSN(){
   convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
 }
 
