@@ -1,4 +1,5 @@
 
+
 // global variables
 var timeZone = "EST";
 
@@ -130,7 +131,7 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolder
 
 // today trade make as csv
 
-function convertToCSVWithChecks(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
+function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
   //var totalRows = ss.getLastRow()
   var totalRows = totalRows + 1; // add first row back 
 
@@ -140,8 +141,31 @@ function convertToCSVWithChecks(ss, totalRows, todayTradeRange, outputTradeRange
   var data2 = ss.getRange(notation2).getValues()
   // get available data range in the spreadsheet
 
-  if (todayTradeOutputFilter.length>0){
-
+  if (todayTradeOutputFilter=="undefined"){
+    Logger.log("Without Filter");
+    try {
+      var csvFile = undefined;
+      if (data2.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data2.length; row++) {
+              if (row < data2.length - 1) {
+                csv += data2[row].join(",") + "\r\n";
+              }
+              else {
+                csv += data2[row];
+                Logger.log("Adding row to CSV")
+              }
+        }
+        csvFile = csv;
+      }
+      return csvFile;
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+  }else if (todayTradeOutputFilter.length>0){
+    Logger.log("With Filter");
     try {
       //var data = activeRange.getValues();
       var csvFile = undefined;
@@ -182,7 +206,7 @@ function convertToCSVWithChecks(ss, totalRows, todayTradeRange, outputTradeRange
   }
 }
 
-function convertToCSVWithChecksandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileOutputFolderId1, fileOutputFolder1Name, fileOutputFolderId2, ledgerRange, ledgerOutputRange, ledgerOutputFilter,ledgerOutputColFilter, ledgerInsertValueCol) {
+function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileOutputFolderId1, fileOutputFolder1Name, fileOutputFolderId2, ledgerRange, ledgerOutputRange, ledgerOutputFilter,ledgerOutputColFilter, ledgerInsertValueCol) {
 
   Logger.log("Start function convertTodaysTradeIntoCSVWithNEWTradesOnly")
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(fileToConvertCsv);
@@ -203,11 +227,19 @@ function convertToCSVWithChecksandCreateFilesToFolders(fileToConvertCsv, rangeIn
   var currentTime = d.getHours();
   
   // convert all available sheet data to csv format
-  var csvFile = convertToCSVWithChecks(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
+  var csvFile = convertToCSV(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
   // create a file in the Docs List with the given name and the csv data
   var atsName = ss.getName().split(" ")[0];
   var outputFileName = ss.getName().replace(atsName,'').replace(" ",'').replace(" ",'');
-  var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
+  
+  try{
+    var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
+  } catch (err) {
+    var fileName = atsName+"_"+outputFileName+ "_" + dateFormatted + "_" + currentTime + ".csv";
+    Logger.log(err);
+  }
+
+  
   var file = dest_folder.createFile(fileName, csvFile);
   var file_output2 = clearlist_outgoing_folder.createFile(fileName, csvFile);
   Logger.log("End function convertTodaysTradeIntoCSVWithNEWTradesOnly")
@@ -247,8 +279,18 @@ function importTacSN(){
 // today trade part
 
 function tradeCreatedCL(){
-  convertToCSVWithChecksandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
 }
+
+function tradeCreatedSN(){
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+}
+
+function nofilter(){
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange)
+}
+
+
 
 
 // combine different functions code
