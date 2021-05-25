@@ -54,7 +54,7 @@ var buyerHoldingRowInMBIndexColNum = 23;
 var buyerBDIDColNumInTodaysTrades = 3;
 var buyerBDFeeColNum = 13;
 var buyerBDRowInMBIndexColNum = 26;
-var clearlistBuyerFeeColNum = 9;
+var ATSBuyerFeeColNum = 9;
 var priceColNum = 6;
 var quantityColNum = 7;
 
@@ -69,7 +69,7 @@ var sellerHoldingRowInMBIndexColNum = 24;
 var sellerBDRowInMBIndexColNum = 25;
 var sellerBDIDColNumInTodaysTrades = 5;
 var sellerBDFeeColNum = 14;
-var clearlistSellerFeeColNum = 15;
+var ATSSellerFeeColNum = 15;
 
 var assetCUSIPColNum = 8;
 
@@ -105,10 +105,13 @@ var todaysTradesSN = "SN Todays Trades"
 
 //Customer Onboarding tab details (used to get Customer email)
   var ssCustOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(customerOnboarding);
-  var notationCO = 'B3:F';
+  var notationCO = 'B3:AC';
   var dataCustomerOnboarding = ssCustOnboarding.getRange(notationCO).getValues();
   var customerOnboardingTabCustomerTrellisIDColNum = 3;
   var customerOnboardingTabCustomerEmailColNum = 2;
+  var customerOnboardingTabCustomerCashAccountColNum = 25
+  var customerOnboardingTabCustomerHoldingCashAccountColNum = 26
+
 
 
 
@@ -191,15 +194,19 @@ var startColInLifecycleTab = 1;
 var rangeInTacTab = "A:A";
 var startColInTacTab = 1;
 
-
 var todaytradeoutputFolderName = "Todays_Trades_Export";
-var todayTradeRange = "B2:AH";
+var todayTradeRangePending = "B2:AH";
+var todayTradeRangeSettled = "B2:AX";
 var todayTradeOutputRange = "B2:R";
-var todayTradeOutputFilter = ["PENDING", "SENT"];
-var todayTradeOutputColFilter = [0,33];
+var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
+var todayTradeOutputSettledFilter = ["SETTLED", "YES",""];
+var todayTradeOutputColPendingFilter = [0,33];
+var todayTradeOutputColSettledFilter = [0,43,44];
 var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
-var todayTradeInsertValueCol = "AI";
+var todayTradeInsertValueColPending = "AI";
+var todayTradeInsertValueColSettled = "AT";
+
 
 //creates folders in Archive folders
 //used by importFromCSV
@@ -347,8 +354,8 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
     catch (err) {
       Logger.log(err);
     }
-  }else if (todayTradeOutputFilter.length>0){
-    Logger.log("With Filter");
+  }else if (todayTradeOutputFilter.length==2){
+    Logger.log("With 2 Filters for pending");
     try {
       //var data = activeRange.getValues();
       var csvFile = undefined;
@@ -363,8 +370,6 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
             if (data[row][todayTradeOutputColFilter[1]] != todayTradeOutputFilter[1]) {
               var change_row_number = row + 2;
 
-              // join each row's columns
-              // add a carriage return to end of each row, except for the last one
               if (row < data2.length - 1) {
                 csv += data2[row].join(",") + "\r\n";
               }
@@ -384,7 +389,44 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
     }
     catch (err) {
       Logger.log(err);
+      Browser.msgBox(err);
     }
+  }else if(todayTradeOutputFilter.length==3){
+    Logger.log("With 3 filters for settled");
+      try {
+      var csvFile = undefined;
+
+      if (data.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data.length; row++) {
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
+            if (data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) {
+              if(data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[2]){
+                  var change_row_number = row + 2;
+
+                  if (row < data2.length - 1) {
+                    csv += data2[row].join(",") + "\r\n";
+                  }
+                  else {
+                    csv += data2[row];
+                    Logger.log("Adding row to CSV")
+                  }
+                  if (change_row_number != 2) {
+                    ss.getRange(todayTradeInsertValueCol + change_row_number).setValue("SENT");
+                  }
+                }
+            }
+          }
+        }
+        csvFile = csv;
+      }
+      return csvFile;
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+
   }
 }
 
@@ -429,16 +471,26 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
 }
 
 
+
+
 function downloadPendingTradesCSVCL(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
 }
 
 function downloadPendingTradesCSVSN(){
-  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
+}
+
+function downloadSettledTradesCSVCL(){
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
+}
+
+function downloadSettledTradesCSVSN(){
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
 }
 
 function nofilter(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange)
 }
 
 
@@ -670,23 +722,29 @@ function importFromCSVForLIFECYCLE_CreateFolder_MoveFileToArchive() {
 function NEWtoPENDINGFunction() {
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
   var totalRows = getLastRow(tradesLedger, 'B:B');
-  moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
+  //moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
   convertTodaysTradeIntoCSVWithNEWTradesOnly(ss, totalRows)
   sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
 
 }
 
-//updates customer balances
+
+function NEWtoPENDINGCL(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
+  var totalRows = getLastRow(todaysTradesCL, 'B:B');
+  moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
+  sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
+}
+
+
+
 //moves cash and securities from customers' main accounts to holding accounts
 function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
   var numOfTradesProcessed =0
   //check this variable before updating balances
-  Logger.log("Start: moveCashAndSecuritiesToHoldingAccounts")
   var okayToSendCSVtoIAColNum = 32
 
-  //get Todays Trades spreadsheet
-  //var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
-  //const totalRows = getLastRow(tradesLedger, "B:B")
+  //info for Todays Trades spreadsheet
   var notation = "B3:AH" + totalRows
   var data = ss.getRange(notation).getValues()
 
@@ -715,9 +773,12 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
       var tradeID = (data[i][tradeIDColNum]);
       var buyerID = data[i][buyerIDCol]
       var sellerID = data[i][sellerIDCol]
-      var buyerHoldingID = "Holding_" + buyerID
       var sellerHoldingID = "Holding_" + sellerID
       var securityCUSIP = data[i][assetCUSIPColNum]
+
+      //check if customer uses omnibus account or personal funds
+      var buyerOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerCashAccountColNum)
+      var buyerHoldingOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerHoldingCashAccountColNum)
 
       //getting price and quantity to calc net notional
       var price = data[i][priceColNum]
@@ -725,15 +786,11 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
       var netNotional = price * quantityShares;
 
       //buyer cash requirement
-      var clearlistBuyerFee = data[i][clearlistBuyerFeeColNum]
+      var ATSBuyerFee = data[i][ATSBuyerFeeColNum]
       var buyerBDFee = data[i][buyerBDFeeColNum]
       var buyerNetNotional = netNotional;
-      var buyerCashObligation = clearlistBuyerFee + buyerNetNotional + buyerBDFee;
-
-
-      //seller securities requirement
-      var sellerSecurityQuantity = data[i][sellerSecurityQuantityColNum]
-
+      var buyerCashObligation = ATSBuyerFee + buyerNetNotional + buyerBDFee;
+  
       
       //this section of the data is used for updating cash
       var notation1 = "B2:E" + totalRows1 + 1
@@ -751,22 +808,20 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
       var buyerHoldingRow = data[i][buyerHoldingRowInMBIndexColNum]
       var sellerRow = data[i][sellerRowInMBIndexColNum]
       var sellerHoldingRow = data[i][sellerHoldingRowInMBIndexColNum]
+      //seller securities requirement
       var sharesQuantity = data[i][sellerSecurityQuantityColNum]
       var securityColNumInMB = data[i][sellerColInMBofSecurityColNum]
 
-      // var dataXYZ = data[i]
-      // when trying to get a column dataXYZ[j]
-
-
+   
       //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
       //debiting cash from buyer's account 
-      updateCustomerCashBalance(ss1, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerCashBalance(ss1, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
       //ORIGINAL updateCustomerCashBalance(ss1, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerID, operation)
 
       //crediting cash to buyer's holding account 
       //ORIGINAL updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingID, operation)
-      updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
 
       //debiting securities from seller's account
@@ -788,14 +843,35 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
     }
   }
 
-  Logger.log("End function moveCashAndSecuritiesToHoldingAccounts")
 }
 
-//updates customer cash balances in Master Balances 
-function RETIREDupdateCustomerCashBalance(ss, data, customerRow, delta, tradeID, customerID, operation) {
+
+function customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, accountColNum){
+  var account = undefined;
+  try{
+  for(i=0;dataCustomerOnboarding.length; i++){    
+    if(dataCustomerOnboarding[i][customerOnboardingTabCustomerTrellisIDColNum] == buyerID){
+      var account = dataCustomerOnboarding[i][accountColNum]
+      return account
+    }
+  }
+  }
+  catch(err){
+    Logger.log("user not found")
+    displayToastAlert("Customer's account could not be identified")
+
+  }
+  
+}
+
+
+
+
+function updateCustomerCashBalance(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
   Logger.log("Start function updateCustomerCashBalance")
   //since ss gets read from row 1, we need to offset customerRow by 2 when setting the new balance
   var offset = -2;
+  Logger.log("customer row & offset" +(customerRow + offset))
   var currentBalance = data[customerRow + offset][3];
   //Logger.log("currentBalance "+currentBalance)
   var newBalance = (currentBalance + delta);
@@ -803,15 +879,16 @@ function RETIREDupdateCustomerCashBalance(ss, data, customerRow, delta, tradeID,
 
   ss.getRange('E' + (customerRow)).setValue(newBalance)
   var asset = "USD";
-  updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, delta, newBalance)
+  updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, delta, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
   Logger.log("End function updateCustomerCashBalance")
+  
 }
-
-function updateCustomerCashBalance(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
+function updateCustomerCashBalanceNOOFFSET(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
   Logger.log("Start function updateCustomerCashBalance")
   //since ss gets read from row 1, we need to offset customerRow by 2 when setting the new balance
-  var offset = -2;
-  var currentBalance = data[customerRow + offset][3];
+  var offset = 3;
+  Logger.log("customer row " +(customerRow+offset))
+  var currentBalance = data[customerRow+offset][3];
   //Logger.log("currentBalance "+currentBalance)
   var newBalance = (currentBalance + delta);
   //Logger.log("new balance "+newBalance)
@@ -842,25 +919,7 @@ function updateCustomerSecurityBalance(ss, data, customerRow, sharesQuantity, se
   Logger.log("End Function updateCustomerSecurityBalance")
 }
 
-//populates the Balances History with debits and credits that occur in Master Balances
-function RETIREDupdateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, previousBalance, delta, newBalance) {
-  Logger.log("Start function updateBalancesHistoryNewFormat")
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
-  //Logger.log("before last row")
-  var totalRows = ss.getLastRow();
-  Logger.log("last row is " + totalRows)
 
-
-  var lastRow = totalRows + 1
-  var time = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy HH:mm:ss");
-
-  var valuesArray = [[time, tradeID, customerID, operation, asset, previousBalance, delta, newBalance]]
-
-  ss.getRange("A" + lastRow + ":H" + lastRow).setValues(valuesArray)
-
-  Logger.log("End function updateBalancesHistoryNewFormat")
-
-}
 
 //populates the Balances History with debits and credits that occur in Master Balances
 function updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, previousBalance, delta, newBalance, ss, totalRows) {
@@ -941,7 +1000,7 @@ function convertNEWTradesInTodaysTradeToCsvFileAndChangeToPending(ss, totalRows)
         // PROCESSING used to say NEW
         if (data[row][0] == "PENDING" || data[row][0] == "Transaction Type") {
 
-          if (data[row][33] != "SENT" || data[row][32] == "Okay to Send CSVs & Emails to Issuer Agent + Seller&BD + Buyer&BD?") {
+          if (data[row][33] != "SENT" || data[row][32] == "Okay to Process Trades?") {
 
             var change_row_number = row + 2;
 
@@ -975,7 +1034,7 @@ function convertNEWTradesInTodaysTradeToCsvFileAndChangeToPending(ss, totalRows)
 
 //sends email to customers & BDs letting them know that a trade was processed 
 function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
-  Logger.log("Start function sendEmailsToSellerBuyerBDsBeforeSettlement")
+  //Logger.log("Start function sendEmailsToSellerBuyerBDsBeforeSettlement")
   //Todays Trades spreadsheet 
   //var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
   //const totalRows = getLastRow(tradesLedger, 'B:B');
@@ -1054,7 +1113,7 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
       var subjectSeller = "Your Sell Trade in " + security + " is being processed";
       var messageSeller = "Hello,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
         "\nQuantity: " + quantity + "\nSecurity: " + security + "\nSelling Net Notional: " +
-        sellingNetNotional + "\nBroker Dealer Fee: " + sellerBDFees + "\nClearList Fee: " + clearlistFeesSeller + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        sellingNetNotional + "\nFees: " + (sellerBDFees + clearlistFeesSeller) + "\n\nBest,\nPaxos Private Securities Custody Operations"
       //send email to Seller&BD
       sendEmailWithoutAttachmentFromPrivateSecuritiesOps(sellerEmailFormatted, subjectSeller, messageSeller, sellerBDEmailFormatted)
       //mark "Email Sent to Seller" as YES in Todays Trades
@@ -1078,7 +1137,7 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
       var subjectBuyer = "Your Buy Trade in " + security + " is being processed";
       var messageBuyer = "Hi,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
         "\nQuantity: " + quantity + "\nSecurity: " + security + "\nBuying Net Notional: " +
-        buyingNetNotional + "\nBroker Dealer Fee: " + buyerBDFees + "\nClearList Fee: " + clearlistFeesBuyer + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        buyingNetNotional + "\nFees: " + (buyerBDFees + clearlistFeesBuyer) + "\n\nBest,\nPaxos Private Securities Custody Operations"
       sendEmailWithoutAttachmentFromPrivateSecuritiesOps(buyerEmailFormatted, subjectBuyer, messageBuyer, buyerBDEmailFormatted)
       var emailSentToBuyerAndBDColNum = 35;
       ss.getRange(i + 3, emailSentToBuyerAndBDColNum + 2).setValue("Sent");
@@ -1086,7 +1145,7 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
     }
 
   }
-  Logger.log("End function sendEmailsToSellerBuyerBDsBeforeSettlement")
+  //Logger.log("End function sendEmailsToSellerBuyerBDsBeforeSettlement")
 
 }
 
@@ -1242,22 +1301,40 @@ function PENDINGtoSETTLED() {
 
 }
 
+function getRowNumberOfCustomerInSpreadsheet(dataSS, customerID){
+  Logger.log("looking for customer "+customerID)
+  
+  var row = undefined
+  for (i=0;dataSS.length;i++){
+    Logger.log("i "+i+" data " + dataSS[i])
+    if(dataSS[i]==customerID){
+      row = i;
+      return row;
+    }
+  }
+  Logger.log("customer not found")
+}
+
+function testgetRowNumberOfCustomerInSpreadsheet(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var dataMB = ss.getRange("C3:C").getValues()
+  getRowNumberOfCustomerInSpreadsheet(dataMB, "ChichiDemo")
+
+}
+
+
 //moves cash and securities from holding accounts to relevant main accounts
 //assigns fees to BDs, clearlist & paxos
-function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled) {
-  Logger.log("Start moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION")
-  /*
-  logic of this function:
+/***
+   * logic of this function:
   Buyer Net Notional = price * quantity 
   Seller Net Notional = Buyer Net Notional 
 
   Holding_Buyer $$ = - (Buying Net Notional + clearlist BD fee + BBD Fee)
-  [OUTDATED] Seller $$ = + Selling Net Notional
   [NEW] Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee)
   BuyerBD = + BBD Fee
   Holding_Seller Sec = - Quantity
   Buyer Sec = +Quantity
-  [DELETED] Holding_Seller = - (SBD Fee + Clearlist SBD Fee) 
   SellerBD = + SBD Fee
 
   Clearlist = + (Clearlist BD Fee - Paxos fee)
@@ -1265,47 +1342,61 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
     if clearliat SBD !=0 --> Paxos fee = + (seller net notional *0.001)" 
   Paxos = + Paxos fee (see above for calc) 
   */
-  //check this variable before updating balances
-  var okayToSettleColNum = 39
 
-  var tradeSettledColNum = 40
+function testSETTLEMENTFUNCTIIO(){
+  var numOfTradesSettled = 0
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
+  const totalRows = getLastRow(todaysTradesCL, 'B:B');
+  moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, clearlistID, paxosID)
+}
+
+function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, atsID, paxosID) {
+  Logger.log("HERE")
+  //check this variable before updating balances
+  var okayToSettleColNum = 43
+  var tradeSettledColNum = 44
 
   //get Todays Trades spreadsheet
-  //var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
-  //const totalRows = getLastRow(tradesLedger, 'B:B');
-  var notation = "B3:AU" + totalRows
-  var data = ss.getRange(notation).getValues()
+  var notationTT = "B3:AX" + totalRows
+  var data = ss.getRange(notationTT).getValues()
 
+  //variable for updating Balances History 
   var operation = "PENDINGtoSETTLED"
-
-
-  //var ssBalancesHistory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
   var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
-
   
-  //identifying area of MB to be looked at for the functions that update MB Cash
-  var ss1 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-  const totalRows1 = getLastRow(masterBalancesSheet, 'B:B');
+  //identifying area of MB to be looked at for the functions that updates MB Cash
+  var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
+  var notationMB = "B2:E" + totalRowsMB + 1
 
-  //loop through the data 
+  var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
+
+  //get row number of ATS account that accrues fees in MB
+  var atsAccountRowInMB = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, atsID)
+
+  //get row number of Paxos account that accrues fees in MB
+  var paxosAccountRowInMB = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, paxosID)
+
+  //loop through the data in Todays Trades 
   for (var i = 0; i < data.length; i++) {
-
+    Logger.log("inside first for loop")
     //if all seller and buyer requirements met, proceed to update balance
     if (data[i][okayToSettleColNum] == "YES" && data[i][tradeStatusColNum] == "PENDING" && data[i][tradeSettledColNum] == "NotSettled" && numOfTradesSettled < maxTradesPerBatch ) {
       Logger.log("Number of trades settled "+ numOfTradesSettled)
+      
       //the following will be used to update the Balances history
       //get trade ID
-      var tradeID = (data[i][tradeIDColNum]);
+      var tradeID = data[i][tradeIDColNum];
       var buyerID = data[i][buyerIDCol]
       var sellerID = data[i][sellerIDCol]
-      var buyerHoldingID = "Holding_" + buyerID
       var sellerHoldingID = "Holding_" + sellerID
       var securityCUSIP = data[i][assetCUSIPColNum]
       var buyerBDID = data[i][buyerBDIDColNumInTodaysTrades]
       var sellerBDID = data[i][sellerBDIDColNumInTodaysTrades]
 
-      var paxosRowInMB = data[i][paxosRowInMBIndexColNum];
-      var clearlistRowInMB = data[i][clearlist51424RowInMBIndexColNum];
+      //identify if buyer uses omnibus account or personal funds
+      var buyerHoldingOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerHoldingCashAccountColNum)
 
       //net notional
       var price = data[i][priceColNum]
@@ -1313,32 +1404,24 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       var netNotional = price * quantityShares;
 
       //buyer cash requirement
-      var clearlistBuyerFee = data[i][clearlistBuyerFeeColNum]
+      var atsBuyerFee = data[i][ATSBuyerFeeColNum]
       var buyerBDFee = data[i][buyerBDFeeColNum]
       var buyerNetNotional = netNotional;
-      var buyerCashObligation = clearlistBuyerFee + buyerNetNotional + buyerBDFee;
+      var buyerCashObligation = atsBuyerFee + buyerNetNotional + buyerBDFee;
 
       //seller cash requirement
-      var clearlistSellerFee = data[i][clearlistSellerFeeColNum]
+      var atsSellerFee = data[i][ATSSellerFeeColNum]
       var sellerBDFee = data[i][sellerBDFeeColNum]
       var sellerNetNotional = netNotional;
 
-      var sellerCashDue = (netNotional - clearlistSellerFee - sellerBDFee);
+      var sellerCashDue = (netNotional - atsSellerFee - sellerBDFee);
 
-
-      //seller securities requirement
-      var sellerSecurityQuantity = data[i][sellerSecurityQuantityColNum]
-
-      //identifying area of MB to be looked at for the functions that update MB Cash
-      //ORIGINAL, took out of the for loop: var ss1 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-      //ORIGINAL, took out of the for loop: const totalRows1 = getLastRow(masterBalancesSheet, 'B:B');
-      //this section of the data is used for updating cash
-      var notation1 = "B2:E" + totalRows1 + 1
-      var dataMB = ss1.getRange(notation1).getValues()
+      //after each trade is settled, we pull the newest MB data
+      var dataMB = ssMB.getRange(notationMB).getValues()
 
       //this section of the data is used for updating securities 
-      var notationSecurities = "B2:Z" + totalRows1 + 1
-      var dataMBSecurities = ss1.getRange(notationSecurities).getValues();
+      var notationSecurities = "B2:Z" + totalRowsMB + 1
+      var dataMBSecurities = ssMB.getRange(notationSecurities).getValues();
 
 
       //to be used for Balances History updating
@@ -1353,16 +1436,16 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       var sellerBDRow = data[i][sellerBDRowInMBIndexColNum]
 
       var paxosFee = 0
-      if (clearlistBuyerFee > 0) {
+      if (atsBuyerFee > 0) {
         var paxosFeeBuyerSide = (buyerNetNotional * 0.001);
         paxosFee = paxosFee + paxosFeeBuyerSide
       }
-      if (clearlistSellerFee > 0) {
+      if (atsSellerFee > 0) {
         var paxosFeeSellerSide = (sellerNetNotional * 0.001);
         paxosFee = paxosFee + paxosFeeSellerSide
       }
 
-      var clearlistFeeBuyerSellerMinusPaxos = (clearlistBuyerFee + clearlistSellerFee) - paxosFee
+      var atsFeeBuyerSellerMinusPaxos = (atsBuyerFee + atsSellerFee) - paxosFee
 
       //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
 
@@ -1370,13 +1453,13 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       //known issue: in case BDs are the same, the code works faster than MB get updated, so when code tries to pull the newly updated the BD MB it still sees the old value. Because of this, we're checking first if BD is the same and then only add the joint fee once 
       if (buyerBDID == sellerBDID) {
         var jointBuyerSellerBDFee = buyerBDFee + sellerBDFee
-        updateCustomerCashBalance(ss1, dataMB, buyerBDRow, jointBuyerSellerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, jointBuyerSellerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
       }
       else {
         //Logger.log("entering Buyer BD Fee function")
         //BuyerBD = + BBD Fee
-        updateCustomerCashBalance(ss1, dataMB, buyerBDRow, buyerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, buyerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
         //Logger.log("buyer bd row "+buyerBDRow)
         //Logger.log("buyer fee "+buyerBDFee)
@@ -1384,7 +1467,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
         //Logger.log("entering Seller BD Fee function")
         //SellerBD = + SBD Fee
-        updateCustomerCashBalance(ss1, dataMB, sellerBDRow, +sellerBDFee, tradeID, sellerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        updateCustomerCashBalance(ssMB, dataMB, sellerBDRow, +sellerBDFee, tradeID, sellerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
         //Logger.log("seller bd row "+sellerBDRow)
         //Logger.log("seller fee "+sellerBDFee)
@@ -1394,31 +1477,25 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
 
       //Holding_Buyer $$ = - (Buying Net Notional + clearlist BD fee + BBD Fee) = - buyerCashObligation
-      updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, -buyerCashObligation, tradeID, buyerHoldingID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerCashBalance(ssMB, dataMB, buyerHoldingRow, -buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
 
       //Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee) = + sellerCashDue
-      updateCustomerCashBalance(ss1, dataMB, sellerRow, sellerCashDue, tradeID, sellerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerCashBalance(ssMB, dataMB, sellerRow, sellerCashDue, tradeID, sellerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
 
 
       //Holding_Seller Sec = - Quantity
-      updateCustomerSecurityBalance(ss1, dataMBSecurities, sellerHoldingRow, -sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerSecurityBalance(ssMB, dataMBSecurities, sellerHoldingRow, -sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
 
       //Buyer Sec = +Quantity
-      updateCustomerSecurityBalance(ss1, dataMBSecurities, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerSecurityBalance(ssMB, dataMBSecurities, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
 
-      //no longer putting cash in holding account during processing and hence not taking cash out during settlement 
-      /*
-      //Holding_Seller = - (SBD Fee + Clearlist SBD Fee) 
-      updateCustomerCashBalance(ss1, dataMB, sellerHoldingRow, -sellerCashObligation, tradeID, sellerHoldingID, operation) 
-      */
-      //Logger.log("entering Clearlist Fee function")
 
-      //Clearlist = + (Clearlist BD Fees - Paxos fee) 
-      updateCustomerCashBalance(ss1, dataMB, clearlistRowInMB, clearlistFeeBuyerSellerMinusPaxos, tradeID, clearlistID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      //ATS = + (ATS BD Fees - Paxos fee) 
+      updateCustomerCashBalanceNOOFFSET(ssMB, dataMB, atsAccountRowInMB, atsFeeBuyerSellerMinusPaxos, tradeID, atsID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
       //Logger.log("clearlist row " + clearlistRowInMB)
       //Logger.log("clearlist fee " + clearlistFeeBuyerSellerMinusPaxos)
@@ -1427,7 +1504,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       //Logger.log("entering Paxos Fee function")
 
       //update Paxos fee 
-      updateCustomerCashBalance(ss1, dataMB, paxosRowInMB, paxosFee, tradeID, paxosID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+      updateCustomerCashBalanceNOOFFSET(ssMB, dataMB, paxosAccountRowInMB, paxosFee, tradeID, paxosID, operation,ssBalancesHistory,totalRowsBalancesHistory)
       totalRowsBalancesHistory +=1;
       //Logger.log("paxos row " + paxosRowInMB)
       //Logger.log("paxos fee " + paxosFee)
@@ -1449,6 +1526,8 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
   Logger.log("END moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION")
 
 }
+
+
 
 //generates CSV of newly settled trades
 function convertTodaysTradeIntoCSVWithNewlySETTLEDTradesOnly(ss, totalRows) {

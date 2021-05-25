@@ -39,13 +39,17 @@ var startColInTacTab = 1;
 
 
 var todaytradeoutputFolderName = "Todays_Trades_Export";
-var todayTradeRange = "B2:AH";
+var todayTradeRangePending = "B2:AH";
+var todayTradeRangeSettled = "B2:AX";
 var todayTradeOutputRange = "B2:R";
-var todayTradeOutputFilter = ["PENDING", "SENT"];
-var todayTradeOutputColFilter = [0,33];
+var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
+var todayTradeOutputSettledFilter = ["SETTLED", "YES",""];
+var todayTradeOutputColPendingFilter = [0,33];
+var todayTradeOutputColSettledFilter = [0,43,44];
 var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
-var todayTradeInsertValueCol = "AI";
+var todayTradeInsertValueColPending = "AI";
+var todayTradeInsertValueColSettled = "AT";
 
 
 
@@ -131,6 +135,7 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolder
 
 // today trade make as csv
 
+
 function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
   //var totalRows = ss.getLastRow()
   var totalRows = totalRows + 1; // add first row back 
@@ -163,8 +168,8 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
     catch (err) {
       Logger.log(err);
     }
-  }else if (todayTradeOutputFilter.length>0){
-    Logger.log("With Filter");
+  }else if (todayTradeOutputFilter.length==2){
+    Logger.log("With 2 Filters for pending");
     try {
       //var data = activeRange.getValues();
       var csvFile = undefined;
@@ -179,8 +184,6 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
             if (data[row][todayTradeOutputColFilter[1]] != todayTradeOutputFilter[1]) {
               var change_row_number = row + 2;
 
-              // join each row's columns
-              // add a carriage return to end of each row, except for the last one
               if (row < data2.length - 1) {
                 csv += data2[row].join(",") + "\r\n";
               }
@@ -202,6 +205,42 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
       Logger.log(err);
       Browser.msgBox(err);
     }
+  }else if(todayTradeOutputFilter.length==3){
+    Logger.log("With 3 filters for settled");
+      try {
+      var csvFile = undefined;
+
+      if (data.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data.length; row++) {
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
+            if (data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) {
+              if(data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[2]){
+                  var change_row_number = row + 2;
+
+                  if (row < data2.length - 1) {
+                    csv += data2[row].join(",") + "\r\n";
+                  }
+                  else {
+                    csv += data2[row];
+                    Logger.log("Adding row to CSV")
+                  }
+                  if (change_row_number != 2) {
+                    ss.getRange(todayTradeInsertValueCol + change_row_number).setValue("SENT");
+                  }
+                }
+            }
+          }
+        }
+        csvFile = csv;
+      }
+      return csvFile;
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+
   }
 }
 
@@ -278,12 +317,21 @@ function importTacSN(){
 // today trade part
 
 function downloadPendingTradesCSVCL(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
 }
 
 function downloadPendingTradesCSVSN(){
-  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange,todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol)
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
 }
+
+function downloadSettledTradesCSVCL(){
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
+}
+
+function downloadSettledTradesCSVSN(){
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
+}
+
 
 function nofilter(){
   convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRange,todayTradeOutputRange)
