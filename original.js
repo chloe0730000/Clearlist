@@ -1,7 +1,5 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 //GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,11 +47,11 @@ var clearlist51424RowInMBIndexColNum = 38;
 //the col numbers represent the columns in Todays Trades. The contents of the cells indicate the row number or column number of a variable in master balances 
 var buyerNetNotionalColNum = 10;
 var buyerIDCol = 2;
-var buyerRowInMBIndexColNum = 21;
-var buyerHoldingRowInMBIndexColNum = 23;
+var buyerRowInMBIndexColNum = 21; //not used anyomore
+var buyerHoldingRowInMBIndexColNum = 23; //not used anyomore
 var buyerBDIDColNumInTodaysTrades = 3;
 var buyerBDFeeColNum = 13;
-var buyerBDRowInMBIndexColNum = 26;
+var buyerBDRowInMBIndexColNum = 26; //not used anyomore
 var ATSBuyerFeeColNum = 9;
 var priceColNum = 6;
 var quantityColNum = 7;
@@ -62,11 +60,11 @@ var quantityColNum = 7;
 //seller pointers
 var sellerNetNotionalColNum = 11;
 var sellerIDCol = 4;
-var sellerRowInMBIndexColNum = 22;
-var sellerColInMBofSecurityColNum = 27;
+var sellerRowInMBIndexColNum = 22; //not used anyomore
+var sellerColInMBofSecurityColNum = 27; //still used
 var sellerSecurityQuantityColNum = 7;
-var sellerHoldingRowInMBIndexColNum = 24;
-var sellerBDRowInMBIndexColNum = 25;
+var sellerHoldingRowInMBIndexColNum = 24; //not used anyomore
+var sellerBDRowInMBIndexColNum = 25; //not used anyomore
 var sellerBDIDColNumInTodaysTrades = 5;
 var sellerBDFeeColNum = 14;
 var ATSSellerFeeColNum = 15;
@@ -83,6 +81,9 @@ var todaysTradesCL = "CL Todays Trades"
 
 var tradeCreateSN = "SN Trade Create"
 var todaysTradesSN = "SN Todays Trades"
+
+var tradingHistoryCL = "CL Trading History"
+var tradingHistorySN = "SN Trading History"
 
 
 
@@ -195,17 +196,17 @@ var rangeInTacTab = "A:A";
 var startColInTacTab = 1;
 
 var todaytradeoutputFolderName = "Todays_Trades_Export";
-var todayTradeRangePending = "B2:AH";
-var todayTradeRangeSettled = "B2:AX";
+var todayTradeRangePending = "B2:AI";
+var todayTradeRangeSettled = "B2:AV";
 var todayTradeOutputRange = "B2:R";
 var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
 var todayTradeOutputSettledFilter = ["SETTLED", "YES",""];
 var todayTradeOutputColPendingFilter = [0,33];
-var todayTradeOutputColSettledFilter = [0,43,44];
+var todayTradeOutputColSettledFilter = [0,44,45];
 var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
 var todayTradeInsertValueColPending = "AI";
-var todayTradeInsertValueColSettled = "AT";
+var todayTradeInsertValueColSettled = "AV";
 
 
 //creates folders in Archive folders
@@ -332,7 +333,7 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
   var data2 = ss.getRange(notation2).getValues()
   // get available data range in the spreadsheet
 
-  if (todayTradeOutputFilter=="undefined"){
+  if (todayTradeOutputFilter="undefined"){
     Logger.log("Without Filter");
     try {
       var csvFile = undefined;
@@ -505,42 +506,61 @@ function nofilter(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+function moveTradesNew(tabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, tabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom){
+  for (var i = startingIndexInTabFrom; i <= rowsInTabFrom; i++) {
+    //gets values from tabFrom in a specified range
+    var values = tabFrom.getRange(startingColInTabFrom + i + ":"+ lastColInTabFrom + i).getValues();
+    //populates tabTo with the values defined in the previous line 
+    tabTo.getRange(rowsInTabTo, startingColTabTo, rowIndexTabTo, colIndexTabTo).setValues(values);
+    //adds 1 to the variable lastrow in order to make sure that the information from the next trade is written into the next row
+    rowsInTabTo +=1
+  }
+  //clears specified range in tabFrom 
+  tabFrom.getRange(rangeToClearTabFrom).clearContent();
+}
+
 function moveTradesFromCLTradeCreateToCLTodaysTrades(){
-  //get Trade Create CL tab info 
-  var ssTradeCreate = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradeCreateCL);
-  rowsTradeCreate = getLastRow(tradeCreateCL, "B:B")
-  //get Todyas Trades CL tab info 
-  var ssTodaysTrades = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
-  rowsTodaysTrades = getLastRow(todaysTradesCL, "B:B");
-  var startingIndex = 3
-  moveTrades(ssTradeCreate, rowsTradeCreate, startingIndex, ssTodaysTrades, rowsTodaysTrades, rangeToClearInTradeCreate)
+  var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradeCreateCL);
+  var rowsInTabFrom = getLastRow(tradeCreateCL, "B:B");
+  var rowsInTabFrom = rowsInTabFrom + 1;
+  var startingColInTabFrom = "B"
+  var lastColInTabFrom = "Q"
+  var startingIndexInTabFrom = 3
+  
+  var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL); 
+  var rowsInTabTo = getLastRow(todaysTradesCL, "B:B");
+  var rowsInTabTo = rowsInTabTo + 1;
+  var startingColTabTo = 2
+  var rowIndexTabTo = 1
+  var colIndexTabTo = 16
+
+  var rangeToClearTabFrom = "B3:Q" + rowsInTabFrom
+
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
   assignCLUniqueSeqRefID()
 }
 
 function moveTradesFromSNTradeCreateToSNTodaysTrades(){
-  //get Trade Create SN tab info 
-  var ssTradeCreate = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradeCreateSN);
-  rowsTradeCreate = getLastRow(tradeCreateSN, "B:B")
-  //get Todyas Trades SN tab info 
-  var ssTodaysTrades = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesSN);
-  rowsTodaysTrades = getLastRow(todaysTradesSN, "B:B");
-  var startingIndex = 3
-  moveTrades(ssTradeCreate, rowsTradeCreate, startingIndex, ssTodaysTrades, rowsTodaysTrades, rangeToClearInTradeCreate)
+  var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradeCreateSN);
+  var rowsInTabFrom = getLastRow(tradeCreateSN, "B:B");
+  var rowsInTabFrom = rowsInTabFrom + 1;
+  var startingColInTabFrom = "B"
+  var lastColInTabFrom = "Q"
+  var startingIndexInTabFrom = 3
+  
+  var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesSN); 
+  var rowsInTabTo = getLastRow(todaysTradesSN, "B:B");
+  var rowsInTabTo = rowsInTabTo + 1;
+  var startingColTabTo = 2
+  var rowIndexTabTo = 1
+  var colIndexTabTo = 16
+
+  var rangeToClearTabFrom = "B3:Q" + rowsInTabFrom
+
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
   assignSNUniqueSeqRefID()
 }
 
-function moveTrades(tabFrom, rowsInTabFrom, startingIndexInTabFrom, tabTo, rowsInTabTo, rangeToClear){
-    for (var i = startingIndexInTabFrom; i <= rowsInTabFrom; i++) {
-    //gets values from Trade Create in the range B:R
-    var values = tabFrom.getRange("B" + i + ":R" + i).getValues();
-    //populates Todays Trades with the values defined in the previous line 
-    tabTo.getRange(rowsInTabTo + 1, 2, 1, 17).setValues(values);
-    //adds 1 to the variable lastrow in order to make sure that the information from the next trade is written into the next row
-    rowsInTabTo +=1
-  }
-  //clears Trade Create 
-  tabFrom.getRange(rangeToClear).clearContent();
-}
 
 //ASSIGNING UNIQUE ID TO TRADES IN TODAYS TRADES 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -590,6 +610,70 @@ function assignUniqueSequenceRefID(ss, lastRow) {
     }
   }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MOVING TRADE DATA FROM TODAYS TRADES TO TRADING HISTORY
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+function moveTradesFromCLTodaysTradesToCLTradingHistory(){
+  var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
+  var rowsInTabFrom = getLastRow(todaysTradesCL, "B:B");
+  var rowsInTabFrom = rowsInTabFrom + 1;
+  var startingColInTabFrom = "B"
+  var lastColInTabFrom = "R"
+  var startingIndexInTabFrom = 3
+  
+
+  var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradingHistoryCL); 
+  var rowsInTabTo = getLastRow(tradingHistoryCL, "B:B");
+  var rowsInTabTo = rowsInTabTo + 1;
+  var startingColTabTo = 1
+  var rowIndexTabTo = 1
+  var colIndexTabTo = 17
+
+  var rangeToClearTabFrom = "B3:R" + rowsInTabFrom
+
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
+
+  
+  var startingColInTabFrom = "AI"
+  var lastColInTabFrom = "AK"
+  var startingColTabTo = 18
+  var colIndexTabTo = 3
+  var rangeToClearTabFrom = "AI3:AK" + rowsInTabFrom
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
+}
+
+function moveTradesFromSNTodaysTradesToSNTradingHistory(){
+  var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesSN);
+  var rowsInTabFrom = getLastRow(todaysTradesSN, "B:B");
+  var rowsInTabFrom = rowsInTabFrom + 1;
+  var startingColInTabFrom = "B"
+  var lastColInTabFrom = "R"
+  var startingIndexInTabFrom = 3
+  
+
+  var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradingHistorySN); 
+  var rowsInTabTo = getLastRow(tradingHistorySN, "B:B");
+  var rowsInTabTo = rowsInTabTo + 1;
+  var startingColTabTo = 1
+  var rowIndexTabTo = 1
+  var colIndexTabTo = 17
+
+  var rangeToClearTabFrom = "B3:R" + rowsInTabFrom
+
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
+
+  
+  var startingColInTabFrom = "AI"
+  var lastColInTabFrom = "AK"
+  var startingColTabTo = 18
+  var colIndexTabTo = 3
+  var rangeToClearTabFrom = "AI3:AK" + rowsInTabFrom
+  moveTradesNew(ssTabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, ssTabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom)
+}
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -728,15 +812,20 @@ function NEWtoPENDINGFunction() {
 
 }
 
-
 function NEWtoPENDINGCL(){
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
   var totalRows = getLastRow(todaysTradesCL, 'B:B');
   moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
-  sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
+  //sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
 }
 
-
+/***
+ * This is one of the main functions, it processes trades
+ * Moves cash from Buyer's Personal Account or BD's Omnibus Account to a Holding Account 
+ * Moves securiteis from Seller's Account to Seller's Holding Account 
+ * 
+ * Takes in the Todays Trade tab of the relevant ATS 
+ */
 
 //moves cash and securities from customers' main accounts to holding accounts
 function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
@@ -744,30 +833,29 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
   //check this variable before updating balances
   var okayToSendCSVtoIAColNum = 32
 
-  //info for Todays Trades spreadsheet
-  var notation = "B3:AH" + totalRows
-  var data = ss.getRange(notation).getValues()
-
   var operation = "NEWtoPENDING"
+  
+  //info for Todays Trades spreadsheet
+  var notationTT = "B3:AH" + totalRows
+  var data = ss.getRange(notationTT).getValues()
 
-
-  //var ssBalancesHistory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
   var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
 
   //identifying area of MB to be looked at for the functions that updates MB Cash & Securities
-  var ss1 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
+  var notationMB = "B1:Q" + totalRowsMB + 1
+  
+  //use this just to get customer rows in MB
+  var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
-  //const totalRows1 = getLastRow(masterBalancesSheet, 'B:B');
-  const totalRows1 = ss1.getLastRow()
 
-  //loop through the data 
+  //loop through the trades 
   for (var i = 0; i < data.length; i++) {
-    Logger.log("Inside for loop of moveCashAndSecuritiesToHoldingAccounts, index" + i)
 
     //if all seller and buyer requirements met, proceed to update balance
-    if (data[i][okayToSendCSVtoIAColNum] == "YES" && data[i][tradeStatusColNum] == "NEW" && numOfTradesProcessed < maxTradesPerBatch ) {
-      //Logger.log("Number of trades processed "+ numOfTradesProcessed)
-
+    if (data[i][okayToSendCSVtoIAColNum] == "YES" && data[i][tradeStatusColNum] == "NEW" && numOfTradesProcessed < maxTradesPerBatch){
       //the following will be used to update the Balances history
       //get trade ID
       var tradeID = (data[i][tradeIDColNum]);
@@ -791,55 +879,45 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
       var buyerNetNotional = netNotional;
       var buyerCashObligation = ATSBuyerFee + buyerNetNotional + buyerBDFee;
   
+      //get fresh information from Master Balances for each trade
+      var dataMB = ssMB.getRange(notationMB).getValues()
+
+      //to be used for Balances History updating 
+      var buyerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerOmniOrPersonal)
+      var buyerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerHoldingOmniOrPersonal)
+      var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, sellerID)
+      var sellerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerHoldingID)
       
-      //this section of the data is used for updating cash
-      var notation1 = "B2:E" + totalRows1 + 1
-      var dataMB = ss1.getRange(notation1).getValues()
-
-      //this section of the data is used for updating securities 
-      var notationSecurities = "B2:Z" + totalRows1 + 1
-      var dataMBSecurities = ss1.getRange(notationSecurities).getValues();
-
-
-      //move buyer's cash obligation to holding account
-      //to be used for Balances History updating
-
-      var buyerRow = data[i][buyerRowInMBIndexColNum]
-      var buyerHoldingRow = data[i][buyerHoldingRowInMBIndexColNum]
-      var sellerRow = data[i][sellerRowInMBIndexColNum]
-      var sellerHoldingRow = data[i][sellerHoldingRowInMBIndexColNum]
       //seller securities requirement
       var sharesQuantity = data[i][sellerSecurityQuantityColNum]
       var securityColNumInMB = data[i][sellerColInMBofSecurityColNum]
 
+      //before updating Master balances, verify that buyer and seller have sufficient cash and securities. If not, skip this trade
+      if(checkIfEnoughCashAndAssetsInAccounts(dataMB, buyerRow, buyerCashObligation, sellerRow, securityColNumInMB, sharesQuantity)){
    
-      //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
-      //debiting cash from buyer's account 
-      updateCustomerCashBalance(ss1, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-      //ORIGINAL updateCustomerCashBalance(ss1, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerID, operation)
+        //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
+        //debiting cash from buyer's account 
+        updateCustomerCashBalance(ssMB, dataMB, buyerRow, -buyerCashObligation, tradeID, buyerOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
 
-      //crediting cash to buyer's holding account 
-      //ORIGINAL updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingID, operation)
-      updateCustomerCashBalance(ss1, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
+        //crediting cash to buyer's holding account 
+        updateCustomerCashBalance(ssMB, dataMB, buyerHoldingRow, buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
 
-      //debiting securities from seller's account
-      updateCustomerSecurityBalance(ss1, dataMBSecurities, sellerRow, -sharesQuantity, securityColNumInMB, tradeID, sellerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
+        //debiting securities from seller's account
+        updateCustomerSecurityBalance(ssMB, dataMB, sellerRow, -sharesQuantity, securityColNumInMB, tradeID, sellerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
 
-      //crediting securities to seller's holding account 
-      updateCustomerSecurityBalance(ss1, dataMBSecurities, sellerHoldingRow, sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
+        //crediting securities to seller's holding account 
+        updateCustomerSecurityBalance(ssMB, dataMB, sellerHoldingRow, sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
 
-      //change status of trade to "PROCESSING"
-      var pointer = i + 3
+        //change status of trade to "PENDING"
+        var pointer = i + 3
 
-      ss.getRange(tradeStatusColumnLetter + pointer).setValue("PENDING")
-      numOfTradesProcessed +=1
-      //Logger.log("Number of trades processed aft adding 1 "+ numOfTradesProcessed)
-
-
+        ss.getRange(tradeStatusColumnLetter + pointer).setValue("PENDING")
+        numOfTradesProcessed +=1
+      }
     }
   }
 
@@ -868,10 +946,9 @@ function customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, accountCo
 
 
 function updateCustomerCashBalance(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
-  Logger.log("Start function updateCustomerCashBalance")
-  //since ss gets read from row 1, we need to offset customerRow by 2 when setting the new balance
-  var offset = -2;
-  Logger.log("customer row & offset" +(customerRow + offset))
+ 
+  //customerRow = the row number of the spreadsheet. Need to offset by -1 in order to get the correct value in array, as arrays start with 0
+  var offset = -1;
   var currentBalance = data[customerRow + offset][3];
   //Logger.log("currentBalance "+currentBalance)
   var newBalance = (currentBalance + delta);
@@ -880,65 +957,32 @@ function updateCustomerCashBalance(ss, data, customerRow, delta, tradeID, custom
   ss.getRange('E' + (customerRow)).setValue(newBalance)
   var asset = "USD";
   updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, delta, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
-  Logger.log("End function updateCustomerCashBalance")
   
 }
-function updateCustomerCashBalanceNOOFFSET(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
-  Logger.log("Start function updateCustomerCashBalance")
-  //since ss gets read from row 1, we need to offset customerRow by 2 when setting the new balance
-  var offset = 3;
-  Logger.log("customer row " +(customerRow+offset))
-  var currentBalance = data[customerRow+offset][3];
-  //Logger.log("currentBalance "+currentBalance)
-  var newBalance = (currentBalance + delta);
-  //Logger.log("new balance "+newBalance)
 
-  ss.getRange('E' + (customerRow)).setValue(newBalance)
-  var asset = "USD";
-  updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, delta, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
-  Logger.log("End function updateCustomerCashBalance")
-  
-}
 
 //updates customer securities balances in Master Balances 
 function updateCustomerSecurityBalance(ss, data, customerRow, sharesQuantity, securityColNum, tradeID, customerID, operation, asset, ssBalancesHistory,totalRowsBalancesHistory) {
-  Logger.log("Start Function updateCustomerSecurityBalance")
-  //Logger.log("securities shares" +sharesQuantity)
-  //Logger.log("secruty col num"+securityColNum)
-  var offset = -2
-  var currentBalance = data[customerRow + offset][securityColNum + offset];
-  //Logger.log("securities original balance "+currentBalance)
+  var offsetRow = -1
+  var offsetCol = -2
+  var currentBalance = data[customerRow + offsetRow][securityColNum + offsetCol];
   var newBalance = currentBalance + sharesQuantity
-  //Logger.log("securities new balance "+newBalance)
-  //the getRange function looks at the whole spreadsheet, hence count starts from A1 rather than B2 so we need to offset row and column by 2
-  var offsetForRow = 0
-  var offsetForCol = 0
-  ss.getRange(customerRow + offsetForRow, securityColNum + offsetForCol).setValue(newBalance)
+
+  ss.getRange(customerRow, securityColNum).setValue(newBalance)
 
   updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, sharesQuantity, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
-  Logger.log("End Function updateCustomerSecurityBalance")
 }
 
 
 
 //populates the Balances History with debits and credits that occur in Master Balances
 function updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, previousBalance, delta, newBalance, ss, totalRows) {
-  Logger.log("Start function updateBalancesHistoryNewFormat")
-  //var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
-  //Logger.log("before last row")
-  //var totalRows = ss.getLastRow();
-  Logger.log("last row is " + totalRows)
-
-
   var lastRow = totalRows + 1
   var time = Utilities.formatDate(new Date(), timeZone, "MM-dd-yyyy HH:mm:ss");
 
   var valuesArray = [[time, tradeID, customerID, operation, asset, previousBalance, delta, newBalance]]
 
   ss.getRange("A" + lastRow + ":H" + lastRow).setValues(valuesArray)
-
-  Logger.log("End function updateBalancesHistoryNewFormat")
-
 }
 
 
@@ -1302,26 +1346,29 @@ function PENDINGtoSETTLED() {
 }
 
 function getRowNumberOfCustomerInSpreadsheet(dataSS, customerID){
-  Logger.log("looking for customer "+customerID)
-  
   var row = undefined
   for (i=0;dataSS.length;i++){
-    Logger.log("i "+i+" data " + dataSS[i])
     if(dataSS[i]==customerID){
-      row = i;
+      //adding 1 since will need to look up value in an array and the array starts with 0
+      row = i+1;
       return row;
     }
   }
-  Logger.log("customer not found")
 }
 
-function testgetRowNumberOfCustomerInSpreadsheet(){
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-  var dataMB = ss.getRange("C3:C").getValues()
-  getRowNumberOfCustomerInSpreadsheet(dataMB, "ChichiDemo")
+
+
+
+
+function PENDINGtoSETTLEDCL(){
+  var numOfTradesSettled = 0
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
+  const totalRows = getLastRow(todaysTradesCL, 'B:B');
+  moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, clearlistID, paxosID)
+
+  //need to add email functionality
 
 }
-
 
 //moves cash and securities from holding accounts to relevant main accounts
 //assigns fees to BDs, clearlist & paxos
@@ -1342,16 +1389,7 @@ function testgetRowNumberOfCustomerInSpreadsheet(){
     if clearliat SBD !=0 --> Paxos fee = + (seller net notional *0.001)" 
   Paxos = + Paxos fee (see above for calc) 
   */
-
-function testSETTLEMENTFUNCTIIO(){
-  var numOfTradesSettled = 0
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
-  const totalRows = getLastRow(todaysTradesCL, 'B:B');
-  moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, clearlistID, paxosID)
-}
-
 function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, atsID, paxosID) {
-  Logger.log("HERE")
   //check this variable before updating balances
   var okayToSettleColNum = 43
   var tradeSettledColNum = 44
@@ -1367,8 +1405,9 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
   //identifying area of MB to be looked at for the functions that updates MB Cash
   var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
   const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-  var notationMB = "B2:E" + totalRowsMB + 1
-
+  var notationMB = "B1:Q" + totalRowsMB + 1
+  
+  //use this just to get customer rows in MB
   var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
   var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
@@ -1380,11 +1419,12 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
   //loop through the data in Todays Trades 
   for (var i = 0; i < data.length; i++) {
-    Logger.log("inside first for loop")
     //if all seller and buyer requirements met, proceed to update balance
-    if (data[i][okayToSettleColNum] == "YES" && data[i][tradeStatusColNum] == "PENDING" && data[i][tradeSettledColNum] == "NotSettled" && numOfTradesSettled < maxTradesPerBatch ) {
-      Logger.log("Number of trades settled "+ numOfTradesSettled)
-      
+    if (data[i][okayToSettleColNum] == "YES" && data[i][tradeStatusColNum] == "PENDING" && data[i][tradeSettledColNum] == "NotSettled" && numOfTradesSettled < maxTradesPerBatch ) {  
+
+      //after each trade is settled, we pull the newest MB data
+      var dataMB = ssMB.getRange(notationMB).getValues()
+
       //the following will be used to update the Balances history
       //get trade ID
       var tradeID = data[i][tradeIDColNum];
@@ -1396,6 +1436,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       var sellerBDID = data[i][sellerBDIDColNumInTodaysTrades]
 
       //identify if buyer uses omnibus account or personal funds
+      var buyerOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerCashAccountColNum)
       var buyerHoldingOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerHoldingCashAccountColNum)
 
       //net notional
@@ -1416,114 +1457,147 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
       var sellerCashDue = (netNotional - atsSellerFee - sellerBDFee);
 
-      //after each trade is settled, we pull the newest MB data
-      var dataMB = ssMB.getRange(notationMB).getValues()
-
-      //this section of the data is used for updating securities 
-      var notationSecurities = "B2:Z" + totalRowsMB + 1
-      var dataMBSecurities = ssMB.getRange(notationSecurities).getValues();
-
 
       //to be used for Balances History updating
-
-      var buyerRow = data[i][buyerRowInMBIndexColNum]
-      var buyerHoldingRow = data[i][buyerHoldingRowInMBIndexColNum]
-      var sellerRow = data[i][sellerRowInMBIndexColNum]
-      var sellerHoldingRow = data[i][sellerHoldingRowInMBIndexColNum]
+      var buyerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerOmniOrPersonal)
+      var buyerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerHoldingOmniOrPersonal)
+      var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, sellerID)
+      var sellerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerHoldingID)
       var sharesQuantity = data[i][sellerSecurityQuantityColNum]
       var securityColNumInMB = data[i][sellerColInMBofSecurityColNum]
-      var buyerBDRow = data[i][buyerBDRowInMBIndexColNum]
-      var sellerBDRow = data[i][sellerBDRowInMBIndexColNum]
+      var buyerBDRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerBDID)
+      var sellerBDRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerBDID)
 
-      var paxosFee = 0
-      if (atsBuyerFee > 0) {
-        var paxosFeeBuyerSide = (buyerNetNotional * 0.001);
-        paxosFee = paxosFee + paxosFeeBuyerSide
+      if(checkIfEnoughCashAndAssetsInAccounts(dataMB, buyerHoldingRow, buyerCashObligation, sellerHoldingRow, securityColNumInMB, sharesQuantity)){
+        Logger.log("inside if statement")
+
+
+        var paxosFee = 0
+        if (atsBuyerFee > 0) {
+          var paxosFeeBuyerSide = (buyerNetNotional * 0.001);
+          paxosFee = paxosFee + paxosFeeBuyerSide
+        }
+        if (atsSellerFee > 0) {
+          var paxosFeeSellerSide = (sellerNetNotional * 0.001);
+          paxosFee = paxosFee + paxosFeeSellerSide
+        }
+
+        
+        var atsFeeBuyerSellerMinusPaxos = (atsBuyerFee + atsSellerFee) - paxosFee
+
+        //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
+
+        //check if the BD is the same for both the buyer and the seller
+        //known issue: in case BDs are the same, the code works faster than MB get updated, so when code tries to pull the newly updated the BD MB it still sees the old value. Because of this, we're checking first if BD is the same and then only add the joint fee once 
+        if (buyerBDID == sellerBDID) {
+          var jointBuyerSellerBDFee = buyerBDFee + sellerBDFee
+          updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, jointBuyerSellerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+        }
+        else {
+          //Logger.log("entering Buyer BD Fee function")
+          //BuyerBD = + BBD Fee
+          updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, buyerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+          //Logger.log("buyer bd row "+buyerBDRow)
+          //Logger.log("buyer fee "+buyerBDFee)
+          //Logger.log("buyerBDID "+buyerBDID)
+
+          //Logger.log("entering Seller BD Fee function")
+          //SellerBD = + SBD Fee
+          updateCustomerCashBalance(ssMB, dataMB, sellerBDRow, +sellerBDFee, tradeID, sellerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+          //Logger.log("seller bd row "+sellerBDRow)
+          //Logger.log("seller fee "+sellerBDFee)
+          //Logger.log("selledbdid "+sellerBDID)
+        }
+
+
+
+        //Holding_Buyer $$ = - (Buying Net Notional + clearlist BD fee + BBD Fee) = - buyerCashObligation
+        updateCustomerCashBalance(ssMB, dataMB, buyerHoldingRow, -buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+
+        //Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee) = + sellerCashDue
+        updateCustomerCashBalance(ssMB, dataMB, sellerRow, sellerCashDue, tradeID, sellerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+
+
+        //Holding_Seller Sec = - Quantity
+        updateCustomerSecurityBalance(ssMB, dataMB, sellerHoldingRow, -sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+
+        //Buyer Sec = +Quantity
+        updateCustomerSecurityBalance(ssMB, dataMB, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerOmniOrPersonal, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+
+
+        //ATS = + (ATS BD Fees - Paxos fee) 
+        updateCustomerCashBalance(ssMB, dataMB, atsAccountRowInMB, atsFeeBuyerSellerMinusPaxos, tradeID, atsID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+        //Logger.log("clearlist row " + clearlistRowInMB)
+        //Logger.log("clearlist fee " + clearlistFeeBuyerSellerMinusPaxos)
+        //Logger.log("clearlist ID " + clearlistID)
+
+        //Logger.log("entering Paxos Fee function")
+
+        //update Paxos fee 
+        updateCustomerCashBalance(ssMB, dataMB, paxosAccountRowInMB, paxosFee, tradeID, paxosID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1;
+        //Logger.log("paxos row " + paxosRowInMB)
+        //Logger.log("paxos fee " + paxosFee)
+        //Logger.log("paxos ID " + paxosID)
+
+
+
+
+        //change status of trade to "SETTLED"
+        var pointer = i + 3
+
+        ss.getRange(tradeStatusColumnLetter + pointer).setValue("SETTLED")
+        numOfTradesSettled += 1
+        Logger.log("Number of trades after adding 1 "+ numOfTradesSettled)
       }
-      if (atsSellerFee > 0) {
-        var paxosFeeSellerSide = (sellerNetNotional * 0.001);
-        paxosFee = paxosFee + paxosFeeSellerSide
-      }
-
-      var atsFeeBuyerSellerMinusPaxos = (atsBuyerFee + atsSellerFee) - paxosFee
-
-      //updateCustomerCashBalance function calls the updateBalanceHistoryNewFormat so the BH get updated automatically
-
-      //check if the BD is the same for both the buyer and the seller
-      //known issue: in case BDs are the same, the code works faster than MB get updated, so when code tries to pull the newly updated the BD MB it still sees the old value. Because of this, we're checking first if BD is the same and then only add the joint fee once 
-      if (buyerBDID == sellerBDID) {
-        var jointBuyerSellerBDFee = buyerBDFee + sellerBDFee
-        updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, jointBuyerSellerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-      }
-      else {
-        //Logger.log("entering Buyer BD Fee function")
-        //BuyerBD = + BBD Fee
-        updateCustomerCashBalance(ssMB, dataMB, buyerBDRow, buyerBDFee, tradeID, buyerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-        //Logger.log("buyer bd row "+buyerBDRow)
-        //Logger.log("buyer fee "+buyerBDFee)
-        //Logger.log("buyerBDID "+buyerBDID)
-
-        //Logger.log("entering Seller BD Fee function")
-        //SellerBD = + SBD Fee
-        updateCustomerCashBalance(ssMB, dataMB, sellerBDRow, +sellerBDFee, tradeID, sellerBDID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-        //Logger.log("seller bd row "+sellerBDRow)
-        //Logger.log("seller fee "+sellerBDFee)
-        //Logger.log("selledbdid "+sellerBDID)
-      }
-
-
-
-      //Holding_Buyer $$ = - (Buying Net Notional + clearlist BD fee + BBD Fee) = - buyerCashObligation
-      updateCustomerCashBalance(ssMB, dataMB, buyerHoldingRow, -buyerCashObligation, tradeID, buyerHoldingOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-
-      //Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee) = + sellerCashDue
-      updateCustomerCashBalance(ssMB, dataMB, sellerRow, sellerCashDue, tradeID, sellerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-
-
-      //Holding_Seller Sec = - Quantity
-      updateCustomerSecurityBalance(ssMB, dataMBSecurities, sellerHoldingRow, -sharesQuantity, securityColNumInMB, tradeID, sellerHoldingID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-
-      //Buyer Sec = +Quantity
-      updateCustomerSecurityBalance(ssMB, dataMBSecurities, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-
-
-      //ATS = + (ATS BD Fees - Paxos fee) 
-      updateCustomerCashBalanceNOOFFSET(ssMB, dataMB, atsAccountRowInMB, atsFeeBuyerSellerMinusPaxos, tradeID, atsID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-      //Logger.log("clearlist row " + clearlistRowInMB)
-      //Logger.log("clearlist fee " + clearlistFeeBuyerSellerMinusPaxos)
-      //Logger.log("clearlist ID " + clearlistID)
-
-      //Logger.log("entering Paxos Fee function")
-
-      //update Paxos fee 
-      updateCustomerCashBalanceNOOFFSET(ssMB, dataMB, paxosAccountRowInMB, paxosFee, tradeID, paxosID, operation,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1;
-      //Logger.log("paxos row " + paxosRowInMB)
-      //Logger.log("paxos fee " + paxosFee)
-      //Logger.log("paxos ID " + paxosID)
-
-
-
-
-      //change status of trade to "SETTLED"
-      var pointer = i + 3
-
-      ss.getRange(tradeStatusColumnLetter + pointer).setValue("SETTLED")
-      numOfTradesSettled += 1
-      Logger.log("Number of trades after adding 1 "+ numOfTradesSettled)
 
     }
   }
 
   Logger.log("END moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION")
+
+}
+
+function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, assetRow, securityColNum, requiredSecurities){
+  var sufficient = false
+  offsetCash = -1
+  var currentCashBalance = dataMB[cashRow + offsetCash][3];
+  //var currentSecuritiesBalance = dataMB
+  var offsetSecurities = -2
+  Logger.log("security col num "+ securityColNum)
+  var currentSecuritiesBalance = dataMB[assetRow + offsetCash][securityColNum + offsetSecurities];
+  Logger.log("current balance "+currentCashBalance)
+  Logger.log("require balance "+ requiredCash)
+  Logger.log("current securities " + currentSecuritiesBalance)
+  Logger.log("required securities "+ requiredSecurities)
+  if(currentCashBalance>=requiredCash && currentSecuritiesBalance >= requiredSecurities){
+    sufficient = true
+    Logger.log(sufficient)
+    return sufficient
+  }
+  Logger.log(sufficient)
+  return sufficient
+
+}
+
+function TESTcheckIfEnoughCashAndAssetsInAccounts(){
+  //identifying area of MB to be looked at for the functions that updates MB Cash
+  var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
+  var notationMB = "B1:Z" + totalRowsMB + 1
+  //var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var allDataMasterBalances = ssMasterBalances.getRange(notationMB).getValues()
+  var buyerID = 
+  checkIfEnoughCashAndAssetsInAccounts(allDataMasterBalances,)
+
 
 }
 
@@ -1751,6 +1825,8 @@ function sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows) {
 }
 
 
+////
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //CONVERTS ANY TAB INTO CSV
@@ -1845,6 +1921,8 @@ function appendTradingHistory() {
 // SENDING TRADING HISTORY TO CLEARLIST
 // RE-WRITE, SO IT CAN SEND A CSV OF ANY TAB TO RELEVANT GOOGLE DRIVE FOLDER
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//START OF NEW MORE REUSABLE FUNCTION
+
 
 
 function convertRangeToCsvFileTradeHistory_() {

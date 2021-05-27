@@ -1,5 +1,3 @@
-
-
 // global variables
 var timeZone = "EST";
 
@@ -146,7 +144,7 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
   var data2 = ss.getRange(notation2).getValues()
   // get available data range in the spreadsheet
 
-  if (todayTradeOutputFilter=="undefined"){
+  if (todayTradeOutputFilter="undefined"){
     Logger.log("Without Filter");
     try {
       var csvFile = undefined;
