@@ -1,3 +1,4 @@
+
 // global variables
 var timeZone = "EST";
 
@@ -357,5 +358,51 @@ function importAllTac(){
   importTacCL()
   importTacSN()
 }
+
+
+var omnibusOnboardingImportSheet="Omnibus Account Onboarding";
+var masterBalanceSheet = "MASTER BALANCES";
+var omnibusOnboardingFilter = ["YES"];
+var omnibusOnboardingColFilter = [12,9, 5];
+var omnibusOnboardingInputRange = "B2:P";
+var startColInMasterBalance = 2;
+var rangeInMasterBalanceTab = "B:B";
+var numberColToFillMasterBalance = 3;
+
+function test6(){
+  onboardingToMasterBalance(omnibusOnboardingImportSheet, masterBalanceSheet, rangeInMasterBalanceTab, omnibusOnboardingInputRange, omnibusOnboardingColFilter, omnibusOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
+}
+
+
+function onboardingToMasterBalance(importSheet, outputSheet, rangeInTab, onboardingInputRange, onboardingColFilter, onboardingFilter, startColInOutputSheet,numberColToFillOutputSheet) {
+  
+  // add first row back
+  var importSheetTotalRows = getLastRow(importSheet, rangeInTab)+1;
+  var outputSheetTotalRows = getLastRow(outputSheet, rangeInTab)+1;
+
+  var notation = onboardingInputRange + importSheetTotalRows;
+  var importss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(importSheet);
+  var outputss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(outputSheet);
+  var data = importss.getRange(notation).getValues();
+    try {
+        for (var row = 0; row < data.length; row++) {
+          if (data[row][onboardingColFilter[0]] == onboardingFilter[0] ) {
+            var customerName = data[row][onboardingColFilter[1]];
+            var brokerDealerId = data[row][onboardingColFilter[2]];    
+            Logger.log("name: "+ customerName + " Broker: "+brokerDealerId);
+            outputss.getRange(outputSheetTotalRows, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", customerName, brokerDealerId]]);
+            outputss.getRange(outputSheetTotalRows+1, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", "Holding_"+customerName, brokerDealerId]]);
+            outputSheetTotalRows+=2;
+          }
+      }
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+}
+
+
+
 
 
