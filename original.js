@@ -333,7 +333,7 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
   var data2 = ss.getRange(notation2).getValues()
   // get available data range in the spreadsheet
 
-  if (todayTradeOutputFilter="undefined"){
+  if (typeof todayTradeOutputFilter==="undefined"){
     Logger.log("Without Filter");
     try {
       var csvFile = undefined;
@@ -401,6 +401,8 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
         var csv = "";
         for (var row = 0; row < data.length; row++) {
           if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
+            csv += data2[row].join(",") + "\r\n";
+            Logger.log("Add title row")
             if (data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) {
               if(data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[2]){
                   var change_row_number = row + 2;
