@@ -8,6 +8,7 @@ var maxTradesPerBatch = 50
 
 var clearlistID = "51424";
 var paxosID = "PAXOS";
+var sharenettID = "SHNT"
 
 var tradesImportSheet = "Trade Create";
 var tradesFile = "CLEAR_TRD.csv";
@@ -163,7 +164,7 @@ var timeZone = "EST";
 
 var bauFolderId = "1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt";
 var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
-var masterOutgoingArchiveFolderId = "12zP8IamGqA5L_Kf-NpfzUXynmhlabvwu";
+var masterOutgoingFolderId = "1Myehii1D3H_sUrvgtuV-yZegp9I1-ru7";
 
 var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
 var clearlistTradeArchiveFolderId = "1vvU-7euhVR8kFoaQNUNMpfNqxO9nUrNg";
@@ -174,19 +175,21 @@ var sharenettTradeArchiveFolderId = "1Gw_p-h9_jAgiZ_v3uxZZySVbLvtP8LLN";
 var sharenettLifecycleArchiveFolderId = "11Oilu8FRPi1C9M7iehswexX0F6oPMfnW";
 var sharenettTacArchiveFolderId = "16fZDLgdPQsY8kcwSUr9sqU6yliUg8iJy";
 
-var clearlistFilePattern = "^CLEAR.2021" + "[0-9]{4}" + ".csv";
-var clearlistLifecyclePattern =  "^CLEAR.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
-var clearlistTacPattern = "tac_file_clearlist";
-var sharenettFilePattern = "^SHARE.2021" + "[0-9]{4}" + ".csv";
-var sharenettLifecyclePattern =  "^SHARE.2021" + "[0-9]{4}" + "_LIFECYCLE.csv";
-var sharenettTacPattern = "tac_file_sharenett";
+var clearlistFilePattern = "^CLEAR_" + "[0-9]{8}" + ".csv";
+var clearlistLifecyclePattern =  "^CLEAR_" + "[0-9]{8}" + "_LIFECYCLE.csv";
+var clearlistTacPattern = "CLEAR_TAC.csv";
+var sharenettFilePattern = "^SHARE_" + "[0-9]{8}" + ".csv";
+var sharenettLifecyclePattern =  "^SHARE_" + "[0-9]{8}" + "_LIFECYCLE.csv";
+var sharenettTacPattern = "SHARE_TAC.csv";
 
 var clearlistTradesImportSheet = "CL Trade Create";
 var clearlistLifecycleImportSheet = "LIFECYCLE";
 var clearlistTacImportSheet = "TAC";
+var clearlistTradingHistory = "CL Trading History";
 var sharenettTradesImportSheet = "SN Trade Create";
 var sharenettLifecycleImportSheet = "LIFECYCLE";
 var sharenettTacImportSheet = "TAC";
+var sharenettTradingHistory = "SN Trading History";
 
 var rangeInTradeTab = "B:B";
 var startColInTradeTab = 2;
@@ -199,6 +202,7 @@ var todaytradeoutputFolderName = "Todays_Trades_Export";
 var todayTradeRangePending = "B2:AI";
 var todayTradeRangeSettled = "B2:AV";
 var todayTradeOutputRange = "B2:R";
+var tradingHistoryOutputRange = "A1:Q";
 var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
 var todayTradeOutputSettledFilter = ["SETTLED", "YES",""];
 var todayTradeOutputColPendingFilter = [0,33];
@@ -207,6 +211,103 @@ var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
 var todayTradeInsertValueColPending = "AI";
 var todayTradeInsertValueColSettled = "AV";
+
+var tradingHistoryOutputFolderName = "Trading_History_Export"
+var tradingHistoryRange = "A2:Q"
+
+
+//Master Balances information used for Onboarding functions 
+var masterBalanceSheet = "MASTER BALANCES";
+var startColInMasterBalance = 2;
+var rangeInMasterBalanceTab = "B:B";
+var numberColToFillMasterBalance = 3;
+
+
+var omnibusOnboardingImportSheet="Omnibus Account Onboarding";
+var omnibusOnboardingFilter = ["YES"];
+//index 0  = "ok to onboard" col
+//index 1 = 
+  //Customer: trellis id col
+  //BD: MPID col
+  //Omni: omnibus col
+//index 2 = broker dealer col
+//index 3 = date col
+var omnibusOnboardingColFilter = [12,10, 5, 16];
+var omnibusOnboardingInputRange = "B2:P";
+
+var customerOnboardingTab = "Customer Onboarding"
+var customerOnboardingRange ="B2:Z" 
+//index 0  = "ok to onboard" col
+//index 1 =
+  //Customer: trellis id col
+  //BD: MPID col
+  //Omni: omnibus col
+//index 2 = broker dealer col
+//index 3 = date col
+var customerOnboardingColFilter = [22,3,4,25]
+var customerOnboardingFilter = ["YES"];
+
+var brokerDealerOnboardingTab = "Broker Dealer Onboarding"
+var brokerDealerOnboardingRange ="F2:U" 
+//index 0  = "ok to onboard" col
+//index 1 =
+  //Customer: trellis id col
+  //BD: MPID col
+  //Omni: omnibus col
+//index 2 = broker dealer col
+//index 3 = date col
+var brokerDealerOnboardingColFilter = [14,2,2,21]
+var brokerDealerOnboardingFilter = ["YES"];
+
+
+function omnibusOnboarding(){
+  onboardingToMasterBalance(omnibusOnboardingImportSheet, masterBalanceSheet, rangeInMasterBalanceTab, omnibusOnboardingInputRange, omnibusOnboardingColFilter, omnibusOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
+}
+
+function customerOnboarding(){
+  onboardingToMasterBalance(customerOnboardingTab, masterBalanceSheet, rangeInMasterBalanceTab, customerOnboardingRange, customerOnboardingColFilter, customerOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
+}
+
+function brokerDealerOnboarding(){
+ onboardingToMasterBalance(brokerDealerOnboardingTab, masterBalanceSheet, rangeInMasterBalanceTab, brokerDealerOnboardingRange, brokerDealerOnboardingColFilter, brokerDealerOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
+}
+
+
+
+
+function onboardingToMasterBalance(importSheet, outputSheet, rangeInTab, onboardingInputRange, onboardingColFilter, onboardingFilter, startColInOutputSheet,numberColToFillOutputSheet) {
+  
+  // add first row back
+  var importSheetTotalRows = getLastRow(importSheet, rangeInTab)+1;
+  var outputSheetTotalRows = getLastRow(outputSheet, rangeInTab)+1;
+
+  var notation = onboardingInputRange + importSheetTotalRows;
+  var importss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(importSheet);
+  var outputss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(outputSheet);
+  var data = importss.getRange(notation).getValues();
+    try {
+        for (var row = 0; row < data.length; row++) {
+          Logger.log("data[row][onboardingColFilter[0]] "+ data[row][onboardingColFilter[0]])
+          Logger.log("onboardingFilter[0] "+ onboardingFilter[0])
+          if (data[row][onboardingColFilter[0]] == onboardingFilter[0] ) {
+            var customerName = data[row][onboardingColFilter[1]];
+            var brokerDealerId = data[row][onboardingColFilter[2]];    
+            Logger.log("name: "+ customerName + " Broker: "+brokerDealerId);
+            outputss.getRange(outputSheetTotalRows, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", customerName, brokerDealerId]]);
+            outputss.getRange(outputSheetTotalRows+1, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", "Holding_"+customerName, brokerDealerId]]);
+            importss.getRange(row+2,onboardingColFilter[3]).setValue(new Date)
+            outputSheetTotalRows+=2;
+            
+          }
+      }
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+}
+
+
 
 
 //creates folders in Archive folders
@@ -477,23 +578,43 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
 
 
 function downloadPendingTradesCSVCL(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
 }
 
 function downloadPendingTradesCSVSN(){
-  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
 }
 
 function downloadSettledTradesCSVCL(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
 }
 
 function downloadSettledTradesCSVSN(){
-  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
+  convertToCSVandCreateFilesToFolders(sharenettTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangeSettled,todayTradeOutputRange,todayTradeOutputSettledFilter, todayTradeOutputColSettledFilter, todayTradeInsertValueColSettled)
 }
 
 function nofilter(){
-  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingArchiveFolderId,todayTradeRangePending,todayTradeOutputRange)
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePending,todayTradeOutputRange)
+}
+
+//CHLOE pls fill in this function
+/***
+ * Converts range A:Q in CL Trading History into a CSV with name CLEAR_TradingHistory_YYYYMMDD.csv
+ * CSV gets saved to Clearlist-prod-data> Outgoing folder 
+ * CSV also gets saved to Operations > BAU> YYYY-MM > YYYY-MM-DD > Trading_History_Export 
+ */
+function downloadTradingHistoryCSVCL(){
+  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange)
+}
+
+//CHLOE pls fill in this function
+/***
+ * Converts range A:Q in SN Trading History into a CSV with name SHARE_TradingHistory_YYYYMMDD.csv
+ * CSV gets saved to Clearlist-prod-data> Outgoing folder 
+ * CSV also gets saved to Operations > BAU> YYYY-MM > YYYY-MM-DD > Trading_History_Export 
+ */
+function downloadTradingHistoryCSVSN(){
+  convertToCSVandCreateFilesToFolders(sharenettTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange)
 }
 
 
@@ -677,6 +798,66 @@ function moveTradesFromSNTodaysTradesToSNTradingHistory(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MOVING TRADE DATA FROM TRADING HISTORY TO TODAYS TRADES 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+function moveTradesFromCLTradingHistoryToCLTodaysTradesAtEOD(){
+  var nameTabFrom = tradingHistoryCL
+  var nameTabTo = todaysTradesCL
+  var colToCheckRowsTabFrom = 'A:A'
+  var colToCheckRowsTabTo = 'B:B'
+  var range1TabFrom = 'A2:Q'
+  var range2TabFrom = 'R2:T'
+  var check1 = "PENDING"
+  var check2 = "NEW"
+  var rangeToClearTabFrom = 'A2:T'
+
+ moveTradesWithChecks(nameTabFrom, nameTabTo, colToCheckRowsTabFrom, colToCheckRowsTabTo,range1TabFrom,range2TabFrom,check1, check2, rangeToClearTabFrom )
+
+}
+
+function moveTradesFromSNTradingHistoryToSNTodaysTradesAtEOD(){
+  var nameTabFrom = tradingHistorySN
+  var nameTabTo = todaysTradesSN
+  var colToCheckRowsTabFrom = 'A:A'
+  var colToCheckRowsTabTo = 'B:B'
+  var range1TabFrom = 'A2:Q'
+  var range2TabFrom = 'R2:T'
+  var check1 = "PENDING"
+  var check2 = "NEW"
+  var rangeToClearTabFrom = 'A2:T'
+
+ moveTradesWithChecks(nameTabFrom, nameTabTo, colToCheckRowsTabFrom, colToCheckRowsTabTo,range1TabFrom,range2TabFrom,check1, check2, rangeToClearTabFrom )
+
+}
+
+
+function moveTradesWithChecks(nameTabFrom, nameTabTo, colToCheckRowsTabFrom, colToCheckRowsTabTo,range1TabFrom,range2TabFrom,check1, check2, rangeToClearTabFrom ){
+   var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nameTabFrom);
+  var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nameTabTo);
+  var totalRowsTabFrom = getLastRow(nameTabFrom, colToCheckRowsTabFrom);
+  var totalRowsTabTo = getLastRow(nameTabTo, colToCheckRowsTabTo);
+  var rangeToClear = rangeToClearTabFrom + totalRowsTabFrom
+
+  var notation1 = range1TabFrom + totalRowsTabFrom + 1;
+  var dataTabFromRange1 = ssTabFrom.getRange(notation1).getValues(); 
+  var notation2 = range2TabFrom + totalRowsTabFrom + 1;
+  var dataTabFromRange2 = ssTabFrom.getRange(notation2).getValues();
+  
+  for (var i = 0; i < dataTabFromRange1.length; i++) {
+    if (dataTabFromRange1[i][0] == check1 || dataTabFromRange1[i][0] == check2) {
+      ssTabTo.getRange(totalRowsTabTo + 1, 2, 1, 17).setValues([dataTabFromRange1[i]]);
+      ssTabTo.getRange(totalRowsTabTo + 1, 35, 1, 3).setValues([dataTabFromRange2[i]]);
+      totalRowsTabTo += 1;
+    }
+  }
+  ssTabFrom.getRange(rangeToClear).clearContent();
+}
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //IMPORT DATA (TAC & LIFECYCLE) 
@@ -818,7 +999,14 @@ function NEWtoPENDINGCL(){
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
   var totalRows = getLastRow(todaysTradesCL, 'B:B');
   moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
-  //sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
+  sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
+}
+
+function NEWtoPENDINGSN(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesSN);
+  var totalRows = getLastRow(todaysTradesSN, 'B:B');
+  moveCashAndSecuritiesToHoldingAccounts(ss, totalRows)
+  sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows)
 }
 
 /***
@@ -1089,10 +1277,10 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
 
   //used for status of trade & verification if it's ok to send emails 
   var transactionTypeColNum = 0;
-  var tradeStatusColNum = 40; //was 32
+  var tradeStatusColNum = 40; 
 
   //trade id of trade
-  var tradeIDColNum = 12; //stays the same
+  var tradeIDColNum = 12; 
 
   //variables for IA check
   var emailSentToSellerColNum = 34;
@@ -1115,7 +1303,7 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
 
   //if trade is NEW, and okayToSendEmails = "YES" --> send emails to IA, Seller&&BD, Buyer&BD
   for (var i = 0; i < totalRows; i++) {
-    if (data[i][emailSentToSellerColNum] != 'Sent' && data[i][emailSentToBuyerColNum] != 'Sent' && data[i][tradeStatusColNum] == 'NotSettled' && data[i][transactionTypeColNum] == "PENDING") {
+    if (data[i][transactionTypeColNum] == "PENDING" && (data[i][emailSentToSellerColNum] != 'Sent' || data[i][emailSentToBuyerColNum] != 'Sent')) {
     
 
       //contents of email for all 
@@ -1139,60 +1327,61 @@ function sendEmailsToSellerBuyerBDsBeforeSettlement(ss, totalRows) {
       var buyerBDFees = data[i][buyerBDFeesColNum];
       var clearlistFeesBuyer = data[i][9];
       var clearlistFeesSeller = data[i][15]
-
-      //Seller email 
-      var sellerTrellisIDColNum = 4;
-      var sellerTrellisID = data[i][sellerTrellisIDColNum];
-
-      var sellerEmail = returnEmail(dataCustomerOnboarding, sellerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      Logger.log("SELLER EMAIL IS "+sellerEmail)
-      var sellerEmailFormatted = Utilities.formatString('%0s', sellerEmail)
-      var sellerBDTrelllisIDColNum = 5;
-      var sellerBDTrelllisID = data[i][sellerBDTrelllisIDColNum]
-      //var sellerBDEmail = returnBDEmail(data[i][sellerBDTrelllisIDColNum]);
-      var sellerBDEmail = returnEmail(dataBrokerDealerOnboarding, sellerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
-      Logger.log("SELLER BD EMAIL IS " + sellerBDEmail)
-
-      var sellerBDEmailFormatted = Utilities.formatString('%0s', sellerBDEmail);
-
-
-      var subjectSeller = "Your Sell Trade in " + security + " is being processed";
-      var messageSeller = "Hello,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
-        "\nQuantity: " + quantity + "\nSecurity: " + security + "\nSelling Net Notional: " +
-        sellingNetNotional + "\nFees: " + (sellerBDFees + clearlistFeesSeller) + "\n\nBest,\nPaxos Private Securities Custody Operations"
-      //send email to Seller&BD
-      sendEmailWithoutAttachmentFromPrivateSecuritiesOps(sellerEmailFormatted, subjectSeller, messageSeller, sellerBDEmailFormatted)
-      //mark "Email Sent to Seller" as YES in Todays Trades
-      var emailSentToSellerAndBDColNum = 34;
-      ss.getRange(i + 3, emailSentToSellerAndBDColNum + 2).setValue("Sent");
-
-      //Buyer email 
-      var buyerTrellisIDColNum = 2;
-      var buyerTrellisID = data[i][buyerTrellisIDColNum];
-      var buyerEmail = returnEmail(dataCustomerOnboarding, buyerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      Logger.log("BUYER EMAIL IS "+buyerEmail)
-      var buyerEmailFormatted = Utilities.formatString('%0s', buyerEmail)
-      var buyerBDTrelllisIDColNum = 3;
-      var buyerBDTrelllisID = data[i][buyerBDTrelllisIDColNum]
       
-      var buyerBDEmail = returnEmail(dataBrokerDealerOnboarding, buyerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
-      Logger.log("BUYER BD EMAIL IS " + sellerBDEmail)
-      var buyerBDEmailFormatted = Utilities.formatString('%0s', buyerBDEmail);
+      if(data[i][emailSentToSellerColNum] != 'Sent'){
+        //Seller email 
+        var sellerTrellisIDColNum = 4;
+        var sellerTrellisID = data[i][sellerTrellisIDColNum];
+
+        var sellerEmail = returnEmail(dataCustomerOnboarding, sellerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        Logger.log("SELLER EMAIL IS "+sellerEmail)
+        var sellerEmailFormatted = Utilities.formatString('%0s', sellerEmail)
+        var sellerBDTrelllisIDColNum = 5;
+        var sellerBDTrelllisID = data[i][sellerBDTrelllisIDColNum]
+        //var sellerBDEmail = returnBDEmail(data[i][sellerBDTrelllisIDColNum]);
+        var sellerBDEmail = returnEmail(dataBrokerDealerOnboarding, sellerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
+        Logger.log("SELLER BD EMAIL IS " + sellerBDEmail)
+
+        var sellerBDEmailFormatted = Utilities.formatString('%0s', sellerBDEmail);
 
 
-      var subjectBuyer = "Your Buy Trade in " + security + " is being processed";
-      var messageBuyer = "Hi,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
-        "\nQuantity: " + quantity + "\nSecurity: " + security + "\nBuying Net Notional: " +
-        buyingNetNotional + "\nFees: " + (buyerBDFees + clearlistFeesBuyer) + "\n\nBest,\nPaxos Private Securities Custody Operations"
-      sendEmailWithoutAttachmentFromPrivateSecuritiesOps(buyerEmailFormatted, subjectBuyer, messageBuyer, buyerBDEmailFormatted)
-      var emailSentToBuyerAndBDColNum = 35;
-      ss.getRange(i + 3, emailSentToBuyerAndBDColNum + 2).setValue("Sent");
+        var subjectSeller = "Your Sell Trade in " + security + " is being processed";
+        var messageSeller = "Hello,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
+          "\nQuantity: " + quantity + "\nSecurity: " + security + "\nSelling Net Notional: " +
+          sellingNetNotional + "\nFees: " + (sellerBDFees + clearlistFeesSeller) + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        //send email to Seller&BD
+        sendEmailWithoutAttachmentFromPrivateSecuritiesOps(sellerEmailFormatted, subjectSeller, messageSeller, sellerBDEmailFormatted)
+        //mark "Email Sent to Seller" as YES in Todays Trades
+        var emailSentToSellerAndBDColNum = 34;
+        ss.getRange(i + 3, emailSentToSellerAndBDColNum + 2).setValue("Sent");
+      }
 
+      //Buyer email   
+      if(data[i][emailSentToBuyerColNum] != 'Sent'){
+        var buyerTrellisIDColNum = 2;
+        var buyerTrellisID = data[i][buyerTrellisIDColNum];
+        var buyerEmail = returnEmail(dataCustomerOnboarding, buyerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        Logger.log("BUYER EMAIL IS "+buyerEmail)
+        var buyerEmailFormatted = Utilities.formatString('%0s', buyerEmail)
+        var buyerBDTrelllisIDColNum = 3;
+        var buyerBDTrelllisID = data[i][buyerBDTrelllisIDColNum]
+        
+        var buyerBDEmail = returnEmail(dataBrokerDealerOnboarding, buyerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
+        Logger.log("BUYER BD EMAIL IS " + buyerBDEmail)
+        var buyerBDEmailFormatted = Utilities.formatString('%0s', buyerBDEmail);
+
+
+        var subjectBuyer = "Your Buy Trade in " + security + " is being processed";
+        var messageBuyer = "Hi,\n\nWe’ve received your trade instruction and are currently processing for settlement.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
+          "\nQuantity: " + quantity + "\nSecurity: " + security + "\nBuying Net Notional: " +
+          buyingNetNotional + "\nFees: " + (buyerBDFees + clearlistFeesBuyer) + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        sendEmailWithoutAttachmentFromPrivateSecuritiesOps(buyerEmailFormatted, subjectBuyer, messageBuyer, buyerBDEmailFormatted)
+        var emailSentToBuyerAndBDColNum = 35;
+        ss.getRange(i + 3, emailSentToBuyerAndBDColNum + 2).setValue("Sent");
+      }
     }
 
   }
-  //Logger.log("End function sendEmailsToSellerBuyerBDsBeforeSettlement")
-
 }
 
 
@@ -1337,15 +1526,6 @@ function returnIAEmail(securityCUSIP) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-function PENDINGtoSETTLED() {
-  var numOfTradesSettled = 0
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
-  const totalRows = getLastRow(tradesLedger, 'B:B');
-  moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled)
-  convertTodaysTradeIntoCSVWithNewlySETTLEDTradesOnly(ss, totalRows)
-  //sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows)
-
-}
 
 function getRowNumberOfCustomerInSpreadsheet(dataSS, customerID){
   var row = undefined
@@ -1359,16 +1539,25 @@ function getRowNumberOfCustomerInSpreadsheet(dataSS, customerID){
 }
 
 
-
-
-
 function PENDINGtoSETTLEDCL(){
   var numOfTradesSettled = 0
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesCL);
   const totalRows = getLastRow(todaysTradesCL, 'B:B');
+  //updates master balances & balances history 
   moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, clearlistID, paxosID)
+  //sends emails
+  sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows)
 
-  //need to add email functionality
+}
+
+function PENDINGtoSETTLEDSN(){
+  var numOfTradesSettled = 0
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(todaysTradesSN);
+  const totalRows = getLastRow(todaysTradesSN, 'B:B');
+  //updates master balances & balances history 
+  moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSETTLEMENTFUNCTION(ss, totalRows, numOfTradesSettled, sharenettID, paxosID)
+  //sends emails
+  sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows)
 
 }
 
@@ -1568,6 +1757,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
 }
 
+//reuse this function for digitization / redemption KATE
 function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, assetRow, securityColNum, requiredSecurities){
   var sufficient = false
   offsetCash = -1
@@ -1587,19 +1777,6 @@ function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, ass
   }
   Logger.log(sufficient)
   return sufficient
-
-}
-
-function TESTcheckIfEnoughCashAndAssetsInAccounts(){
-  //identifying area of MB to be looked at for the functions that updates MB Cash
-  var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-  var notationMB = "B1:Z" + totalRowsMB + 1
-  //var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-  var allDataMasterBalances = ssMasterBalances.getRange(notationMB).getValues()
-  var buyerID = 
-  checkIfEnoughCashAndAssetsInAccounts(allDataMasterBalances,)
-
 
 }
 
@@ -1699,26 +1876,24 @@ function convertSETTLEDTradesInTodaysTradesToCSV(ss, totalRows) {
 
 
 function sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows) {
-  Logger.log("Start sendEmailsToSellerBuyerBDsAFTERSettlement")
 
   //Todays Trades spreadsheet 
   //var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(tradesLedger);
   //const totalRows = getLastRow(tradesLedger, 'B:B');
-  var notation = 'B3:AU';
+  var notation = 'B3:AX';
   var data = ss.getRange(notation).getValues();
 
   //used for status of trade & verification if it's ok to send emails 
   var okayTosendEmailPostSettlement = 42;
-  var tradeStatusColNum = 40;
+  var tradeStatusColNum = 0;
 
   //trade id of trade
-  var tradeIDColNum = 12; //stays the same
+  var tradeIDColNum = 12; 
 
   //variables for IA check
-  var emailSentToSellerColNum = 44;
-  var emailSentToBuyerColNum = 45;
+  var emailSentToSellerColNum = 47;
+  var emailSentToBuyerColNum = 48;
 
-  var securityTokenColNum = 8; //stays the same
 
   //Customer Onboarding tab details (used to get Customer email)
   var ssCustOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(customerOnboarding);
@@ -1737,7 +1912,8 @@ function sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows) {
 
   //if trade is NEW, and okayToSendEmails = "YES" --> send emails to IA, Seller&&BD, Buyer&BD
   for (var i = 0; i < totalRows; i++) {
-    if (data[i][okayTosendEmailPostSettlement] == 'YES' && data[i][emailSentToSellerColNum] != 'Sent' && data[i][emailSentToBuyerColNum] != 'Sent' && data[i][tradeStatusColNum] == 'SETTLED') {
+    
+    if (data[i][tradeStatusColNum] == 'SETTLED' && (data[i][emailSentToSellerColNum] != "Sent" || data[i][emailSentToBuyerColNum] != 'Sent')) {
 
       //contents of email for all 
       var tradeID = data[i][tradeIDColNum]
@@ -1764,60 +1940,55 @@ function sendEmailsToSellerBuyerBDsAFTERSettlement(ss, totalRows) {
 
   
       //Seller email 
-      var sellerTrellisIDColNum = 4;
-      var sellerTrellisID = data[i][sellerTrellisIDColNum];
-      var sellerEmail = returnEmail(dataCustomerOnboarding, sellerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      Logger.log("SELLER EMAIL IS "+sellerEmail)
-      var sellerEmailFormatted = Utilities.formatString('%0s', sellerEmail)
-      var sellerBDTrelllisIDColNum = 5;
-      var sellerBDTrelllisID = data[i][sellerBDTrelllisIDColNum]
-      var sellerBDEmail = returnEmail(dataBrokerDealerOnboarding, sellerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
-      Logger.log("SELLER BD EMAIL IS " + sellerBDEmail)
-      var sellerBDEmailFormatted = Utilities.formatString('%0s', sellerBDEmail);
+      if(data[i][emailSentToSellerColNum] != 'Sent'){
+        var sellerTrellisIDColNum = 4;
+        var sellerTrellisID = data[i][sellerTrellisIDColNum];
+        var sellerEmail = returnEmail(dataCustomerOnboarding, sellerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        Logger.log("SELLER EMAIL IS "+sellerEmail)
+        var sellerEmailFormatted = Utilities.formatString('%0s', sellerEmail)
+        var sellerBDTrelllisIDColNum = 5;
+        var sellerBDTrelllisID = data[i][sellerBDTrelllisIDColNum]
+        var sellerBDEmail = returnEmail(dataBrokerDealerOnboarding, sellerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
+        Logger.log("SELLER BD EMAIL IS " + sellerBDEmail)
+        var sellerBDEmailFormatted = Utilities.formatString('%0s', sellerBDEmail);
 
 
-      var subjectSeller = "Your Sell Trade in " + security + " is settled";
-      var messageSeller = "Hello,\n\nWe are writing to inform you that your trade has been settled by Paxos.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
-        "\nQuantity: " + quantity + "\nSecurity: " + security + "\nSelling Net Notional: " +
-        sellingNetNotional + "\nBroker Dealer Fee: " + sellerBDFees + "\nClearlist Fees: " + clearlistFeesSeller + "\n\nBest,\nPaxos Private Securities Custody Operations"
-      //send email to Seller&BD
-      sendEmailWithoutAttachmentFromPrivateSecuritiesOps(sellerEmail, subjectSeller, messageSeller, sellerBDEmailFormatted)
-      //mark "Email Sent to Seller" as YES in Todays Trades
-      
-      ss.getRange(i + 3, emailSentToSellerAndBDColNum + 2).setValue("Sent");
-
-      /*/Buyer email 
-      var buyerTrellisIDColNum = 2;
-      var buyerTrellisID = data[i][buyerTrellisIDColNum];
-      var buyerEmail = returnCustomerEmail(data[i][buyerTrellisIDColNum]);
-      //var buyerEmailFormatted = Utilities.formatString('%0s', buyerEmail)
-      var buyerBDTrelllisIDColNum = 3;
-      var buyerBDEmail = returnBDEmail(data[i][buyerBDTrelllisIDColNum]);
-      var buyerBDEmailFormatted = Utilities.formatString('%0s', buyerBDEmail);
-      */
+        var subjectSeller = "Your Sell Trade in " + security + " is settled";
+        var messageSeller = "Hello,\n\nWe are writing to inform you that your trade has been settled by Paxos.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
+          "\nQuantity: " + quantity + "\nSecurity: " + security + "\nSelling Net Notional: " +
+          sellingNetNotional + "\nFees: " + (sellerBDFees + clearlistFeesSeller) + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        //send email to Seller&BD
+        sendEmailWithoutAttachmentFromPrivateSecuritiesOps(sellerEmail, subjectSeller, messageSeller, sellerBDEmailFormatted)
+        //mark "Email Sent to Seller" as YES in Todays Trades
+        
+        ss.getRange(i + 3, emailSentToSellerColNum + 2).setValue("Sent");
+      }
+    
+    
 
       //Buyer email 
-      var buyerTrellisIDColNum = 2;
-      var buyerTrellisID = data[i][buyerTrellisIDColNum];
-      var buyerEmail = returnEmail(dataCustomerOnboarding, buyerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      Logger.log("BUYER EMAIL IS "+buyerEmail)
-      var buyerEmailFormatted = Utilities.formatString('%0s', buyerEmail)
-      var buyerBDTrelllisIDColNum = 3;
-      var buyerBDTrelllisID = data[i][buyerBDTrelllisIDColNum]
-      
-      var buyerBDEmail = returnEmail(dataBrokerDealerOnboarding, buyerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
-      Logger.log("BUYER BD EMAIL IS " + sellerBDEmail)
-      var buyerBDEmailFormatted = Utilities.formatString('%0s', buyerBDEmail);
+      if(data[i][emailSentToBuyerColNum] != 'Sent'){
+        var buyerTrellisIDColNum = 2;
+        var buyerTrellisID = data[i][buyerTrellisIDColNum];
+        var buyerEmail = returnEmail(dataCustomerOnboarding, buyerTrellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        Logger.log("BUYER EMAIL IS "+buyerEmail)
+        var buyerEmailFormatted = Utilities.formatString('%0s', buyerEmail)
+        var buyerBDTrelllisIDColNum = 3;
+        var buyerBDTrelllisID = data[i][buyerBDTrelllisIDColNum]
+        
+        var buyerBDEmail = returnEmail(dataBrokerDealerOnboarding, buyerBDTrelllisID, BDOnboardingTabBDTrellisIDColNum, BDOnboardingTabBDEmailColNum)
+        Logger.log("BUYER BD EMAIL IS " + sellerBDEmail)
+        var buyerBDEmailFormatted = Utilities.formatString('%0s', buyerBDEmail);
 
 
-      var subjectBuyer = "Your Buy Trade in " + security + " is settled";
-      var messageBuyer = "Hello,\n\nWe are writing to inform you that your trade has been settled by Paxos.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
-        "\nQuantity: " + quantity + "\nSecurity: " + security + "\nBuying Net Notional: " +
-        buyingNetNotional + "\nBroker Dealer Fee: " + buyerBDFees + "\nClearlist Fees: " + clearlistFeesSeller + "\n\nBest,\nPaxos Private Securities Custody Operations"
-      sendEmailWithoutAttachmentFromPrivateSecuritiesOps(buyerEmailFormatted, subjectBuyer, messageBuyer, buyerBDEmailFormatted)
+        var subjectBuyer = "Your Buy Trade in " + security + " is settled";
+        var messageBuyer = "Hello,\n\nWe are writing to inform you that your trade has been settled by Paxos.\nPlease find the details of the trade below:\n\nTradeID: " + tradeID + "\nTrade Time: " + tradeTime + " (DD:MM:YYYY-HH:MM:SS)\nPrice: " + price +
+          "\nQuantity: " + quantity + "\nSecurity: " + security + "\nBuying Net Notional: " +
+          buyingNetNotional + "\nFees: " + (buyerBDFees + clearlistFeesBuyer) + "\n\nBest,\nPaxos Private Securities Custody Operations"
+        sendEmailWithoutAttachmentFromPrivateSecuritiesOps(buyerEmailFormatted, subjectBuyer, messageBuyer, buyerBDEmailFormatted)
 
-      ss.getRange(i + 3, emailSentToBuyerAndBDColNum + 2).setValue("Sent");
-
+        ss.getRange(i + 3, emailSentToBuyerColNum + 2).setValue("Sent");
+      }
 
     }
 
@@ -2066,10 +2237,7 @@ function movePENDINGTradesFromTradingHistoryToTodaysTrades() {
   for (var i = 0; i < data.length; i++) {
     if (data[i][0] == "PENDING" || data[i][0] == "NEW") {
       sheet2.getRange(totalRows1 + 1, 2, 1, 17).setValues([data[i]]);
-      //sheet2.getRange(totalRows1+1,19,1,2).setValues([data2[i]]);
       sheet2.getRange(totalRows1 + 1, 35, 1, 3).setValues([data3[i]]);
-      //sheet2.getRange(totalRows1+1,45,1,3).setValues([data4[i]]);
-
       totalRows1 += 1;
     }
   }
