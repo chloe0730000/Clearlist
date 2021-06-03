@@ -557,8 +557,9 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
   // convert all available sheet data to csv format
   var csvFile = convertToCSV(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
   // create a file in the Docs List with the given name and the csv data
-  var atsName = ss.getName().split(" ")[0];
-  var outputFileName = ss.getName().replace(atsName,'').replace(" ",'').replace(" ",'');
+  var atsNameo = ss.getName().split(" ")[0];
+  var atsName = ss.getName().split(" ")[0].replace("CL","CLEAR").replace("SN","SHARE"); 
+  var outputFileName = ss.getName().replace(atsNameo,'').replace(" ",'').replace(" ",'');
   
   try{
     var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
