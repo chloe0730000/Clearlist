@@ -1,4 +1,3 @@
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -97,6 +96,7 @@ var tradingHistorySN = "SN Trading History"
 //Master Balances tab
   var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
   var totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
+  //don't think this is used anywhere. also everywhere else we do B1 not B2
   var notationMB = "B2:Z" + totalRowsMB + 1
 
 //Balances History tab
@@ -114,14 +114,6 @@ var tradingHistorySN = "SN Trading History"
   var customerOnboardingTabCustomerCashAccountColNum = 25
   var customerOnboardingTabCustomerHoldingCashAccountColNum = 26
 
-
-
-
-//REDEMPTION TABS 
-
-//Cash Redeem spreadsheet
-  //var ssCashRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashRedeem);
-  
 
 
 
@@ -204,9 +196,9 @@ var todayTradeRangeSettled = "B2:AV";
 var todayTradeOutputRange = "B2:R";
 var tradingHistoryOutputRange = "A1:Q";
 var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
-var todayTradeOutputSettledFilter = ["SETTLED", "YES",""];
+var todayTradeOutputSettledFilter = ["SETTLED", "YES","SENT"];
 var todayTradeOutputColPendingFilter = [0,33];
-var todayTradeOutputColSettledFilter = [0,44,45];
+var todayTradeOutputColSettledFilter = [0,45,46];
 var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
 var todayTradeInsertValueColPending = "AI";
@@ -264,11 +256,13 @@ function omnibusOnboarding(){
   onboardingToMasterBalance(omnibusOnboardingImportSheet, masterBalanceSheet, rangeInMasterBalanceTab, omnibusOnboardingInputRange, omnibusOnboardingColFilter, omnibusOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
 }
 
-function customerOnboarding(){
+function customerOnboardingNEW(){
   onboardingToMasterBalance(customerOnboardingTab, masterBalanceSheet, rangeInMasterBalanceTab, customerOnboardingRange, customerOnboardingColFilter, customerOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
+  sendOnboardingEmail()
+
 }
 
-function brokerDealerOnboarding(){
+function brokerDealerOnboardingNEW(){
  onboardingToMasterBalance(brokerDealerOnboardingTab, masterBalanceSheet, rangeInMasterBalanceTab, brokerDealerOnboardingRange, brokerDealerOnboardingColFilter, brokerDealerOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
 }
 
@@ -424,7 +418,8 @@ function importAllTac(){
 
 // today trade make as csv
 
-function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
+//this function works for all CSVs !!except SETTLED!!, adding a new one for that called convertToCSV (modify and work for all)
+function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
   //var totalRows = ss.getLastRow()
   var totalRows = totalRows + 1; // add first row back 
 
@@ -468,6 +463,7 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
         for (var row = 0; row < data.length; row++) {
           //Logger.log("data row "+data[row][0])
           // PROCESSING used to say NEW
+          
           if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
             if (data[row][todayTradeOutputColFilter[1]] != todayTradeOutputFilter[1]) {
               var change_row_number = row + 2;
@@ -501,11 +497,12 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
       if (data.length > 1) {
         var csv = "";
         for (var row = 0; row < data.length; row++) {
-          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] || data[row][0] == "Transaction Type") {
+          if ( data[row][0] == "Transaction Type") {
             csv += data2[row].join(",") + "\r\n";
             Logger.log("Add title row")
-            if (data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) {
-              if(data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[2]){
+          }
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] && data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1] && data[row][todayTradeOutputColFilter[2]] != todayTradeOutputFilter[2]) {
+
                   var change_row_number = row + 2;
 
                   if (row < data2.length - 1) {
@@ -518,22 +515,22 @@ function convertToCSV(ss, totalRows, todayTradeRange, outputTradeRange, todayTra
                   if (change_row_number != 2) {
                     ss.getRange(todayTradeInsertValueCol + change_row_number).setValue("SENT");
                   }
-                }
+                
             }
           }
         }
         csvFile = csv;
       }
-      return csvFile;
-    }
-    catch (err) {
+      catch (err) {
       Logger.log(err);
       Browser.msgBox(err);
     }
-
-  }
+      return csvFile;
+    }
 }
 
+
+//THIS FUNCTION WORKS FOR ALL CSVS EXCEPT SETTLED TRADES, ADDING A SEPARATE ONE FOR THAT  //called convertToCSVandCreateFilesToFoldersSETTLEDONLY
 function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileOutputFolderId1, fileOutputFolder1Name, fileOutputFolderId2, ledgerRange, ledgerOutputRange, ledgerOutputFilter,ledgerOutputColFilter, ledgerInsertValueCol) {
 
   Logger.log("Start function convertTodaysTradeIntoCSVWithNEWTradesOnly")
@@ -555,7 +552,7 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
   var currentTime = d.getHours();
   
   // convert all available sheet data to csv format
-  var csvFile = convertToCSV(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
+  var csvFile = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
   // create a file in the Docs List with the given name and the csv data
   var atsNameo = ss.getName().split(" ")[0];
   var atsName = ss.getName().split(" ")[0].replace("CL","CLEAR").replace("SN","SHARE"); 
@@ -574,6 +571,7 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
   Logger.log("End function convertTodaysTradeIntoCSVWithNEWTradesOnly")
   return fileName;
 }
+
 
 
 
@@ -598,6 +596,26 @@ function nofilter(){
   convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePending,todayTradeOutputRange)
 }
 
+  var positionsCL = "CL Positions"
+  var positionsSN = "SN Positions"
+  var positionsGTS = "GTS Positions"
+  var rangeInPositions = "B:B"
+  var positionsOutputFolderName = "Positions"
+  var rangeUndefined = "A1:P"
+  var rangeForCSVInPositioins = "A1:H"
+
+function downloadCLPositions(){
+  convertToCSVandCreateFilesToFolders(positionsCL,rangeInPositions,bauFolderId,positionsOutputFolderName,masterOutgoingFolderId,rangeUndefined,rangeForCSVInPositioins) 
+}
+
+function downloadSNPositions(){
+  convertToCSVandCreateFilesToFolders(positionsSN,rangeInPositions,bauFolderId,positionsOutputFolderName,masterOutgoingFolderId,rangeUndefined,rangeForCSVInPositioins) 
+}
+
+function downloadGTSPositions(){
+  convertToCSVandCreateFilesToFolders(positionsGTS,rangeInPositions,bauFolderId,positionsOutputFolderName,masterOutgoingFolderId,rangeUndefined,rangeForCSVInPositioins) 
+}
+
 //CHLOE pls fill in this function
 /***
  * Converts range A:Q in CL Trading History into a CSV with name CLEAR_TradingHistory_YYYYMMDD.csv
@@ -616,6 +634,16 @@ function downloadTradingHistoryCSVCL(){
  */
 function downloadTradingHistoryCSVSN(){
   convertToCSVandCreateFilesToFolders(sharenettTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange)
+}
+
+function eodTradingHistoryCL(){
+  downloadTradingHistoryCSVCL()
+  moveTradesFromCLTradingHistoryToCLTodaysTradesAtEOD()
+}
+
+function eodTradingHistorySN(){
+  downloadTradingHistoryCSVSN()
+  moveTradesFromSNTradingHistoryToSNTodaysTradesAtEOD()
 }
 
 
@@ -1137,29 +1165,34 @@ function customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, accountCo
 
 
 function updateCustomerCashBalance(ss, data, customerRow, delta, tradeID, customerID, operation,ssBalancesHistory,totalRowsBalancesHistory) {
- 
-  //customerRow = the row number of the spreadsheet. Need to offset by -1 in order to get the correct value in array, as arrays start with 0
-  var offset = -1;
-  var currentBalance = data[customerRow + offset][3];
-  //Logger.log("currentBalance "+currentBalance)
+  Logger.log("Starting updateCustomerCashBalance")
+  //customerRow provides the index in an array, rather than the row in the spreadsheet. in order to update the cell using col Letter and row number, using an offset of +1
+  var offset = 1;
+  var currentBalance = data[customerRow][3];
+  Logger.log("customer "+customerID)
+  Logger.log("row "+customerRow)
+  Logger.log("currentBalance "+currentBalance)
   var newBalance = (currentBalance + delta);
-  //Logger.log("new balance "+newBalance)
+  Logger.log("new balance "+newBalance)
 
-  ss.getRange('E' + (customerRow)).setValue(newBalance)
+  ss.getRange('E' + (customerRow+offset)).setValue(newBalance)
   var asset = "USD";
   updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, delta, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
+  Logger.log("Ending updateCustomerCashBalance")
+
   
 }
 
-
 //updates customer securities balances in Master Balances 
 function updateCustomerSecurityBalance(ss, data, customerRow, sharesQuantity, securityColNum, tradeID, customerID, operation, asset, ssBalancesHistory,totalRowsBalancesHistory) {
-  var offsetRow = -1
+  Logger.log("UPDATING MB")
+  var offsetRow = 1
   var offsetCol = -2
-  var currentBalance = data[customerRow + offsetRow][securityColNum + offsetCol];
+  var currentBalance = data[customerRow][securityColNum + offsetCol];
   var newBalance = currentBalance + sharesQuantity
-
-  ss.getRange(customerRow, securityColNum).setValue(newBalance)
+  //Logger.log("current SECURITIES balance "+currentBalance)
+  //Logger.log("newBalance SECURITIES "+newBalance)
+  ss.getRange(customerRow+offsetRow, securityColNum).setValue(newBalance)
 
   updateBalancesHistoryNewFormat(tradeID, customerID, operation, asset, currentBalance, sharesQuantity, newBalance,ssBalancesHistory,totalRowsBalancesHistory)
 }
@@ -1531,9 +1564,12 @@ function returnIAEmail(securityCUSIP) {
 function getRowNumberOfCustomerInSpreadsheet(dataSS, customerID){
   var row = undefined
   for (i=0;dataSS.length;i++){
+    //Logger.log("getting row number for customer "+customerID)
+    //Logger.log("dataSS[i] "+dataSS[i])
     if(dataSS[i]==customerID){
-      //adding 1 since will need to look up value in an array and the array starts with 0
-      row = i+1;
+      //not doing this for now: adding 1 since will need to look up value in an array and the array starts with 0
+      row = i; //IN CASE WE HAVE PROBLEMS WITH PROCESSING OR SETTLEMENT UPDATE THIS NUMBER KATE
+      //Logger.log("row of customer "+customerID +" is "+row)
       return row;
     }
   }
@@ -1569,8 +1605,17 @@ function PENDINGtoSETTLEDSN(){
   Buyer Net Notional = price * quantity 
   Seller Net Notional = Buyer Net Notional 
 
-  Holding_Buyer $$ = - (Buying Net Notional + clearlist BD fee + BBD Fee)
-  [NEW] Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee)
+  If Buyer uses personal account:
+    Holding_Buyer $$ = - (Buying Net Notional + clearlist buyer fee + BBD Fee)
+  Else If Buyer uses omni:
+    Holding_Omnibus_BuyerBD $$ = - (Buying Net Notional + clearlist buyer fee + BBD Fee)
+
+  If Seller uses personal account:
+    Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee)*
+  Else if Seller uses omni:
+    Omnibus_SellerBD $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee)*
+  
+
   BuyerBD = + BBD Fee
   Holding_Seller Sec = - Quantity
   Buyer Sec = +Quantity
@@ -1653,7 +1698,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       //to be used for Balances History updating
       var buyerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerOmniOrPersonal)
       var buyerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerHoldingOmniOrPersonal)
-      var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, sellerID)
+      //var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, sellerID)
       var sellerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerHoldingID)
       var sharesQuantity = data[i][sellerSecurityQuantityColNum]
       var securityColNumInMB = data[i][sellerColInMBofSecurityColNum]
@@ -1663,6 +1708,10 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       if(checkIfEnoughCashAndAssetsInAccounts(dataMB, buyerHoldingRow, buyerCashObligation, sellerHoldingRow, securityColNumInMB, sharesQuantity)){
         Logger.log("inside if statement")
 
+        //identify if seller uses omnibus account or personal funds. only used for cash. securities of the seller will come out of their personal account
+      var sellerOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,sellerID, customerOnboardingTabCustomerCashAccountColNum)
+      var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerOmniOrPersonal)
+      
 
         var paxosFee = 0
         if (atsBuyerFee > 0) {
@@ -1711,7 +1760,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
         totalRowsBalancesHistory +=1;
 
         //Seller $$ = + (Selling Net Notional - SBD FEE - Clearlist Seller Fee) = + sellerCashDue
-        updateCustomerCashBalance(ssMB, dataMB, sellerRow, sellerCashDue, tradeID, sellerID, operation,ssBalancesHistory,totalRowsBalancesHistory)
+        updateCustomerCashBalance(ssMB, dataMB, sellerRow, sellerCashDue, tradeID, sellerOmniOrPersonal, operation,ssBalancesHistory,totalRowsBalancesHistory)
         totalRowsBalancesHistory +=1;
 
 
@@ -1761,16 +1810,15 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 //reuse this function for digitization / redemption KATE
 function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, assetRow, securityColNum, requiredSecurities){
   var sufficient = false
-  offsetCash = -1
-  var currentCashBalance = dataMB[cashRow + offsetCash][3];
-  //var currentSecuritiesBalance = dataMB
-  var offsetSecurities = -2
-  Logger.log("security col num "+ securityColNum)
-  var currentSecuritiesBalance = dataMB[assetRow + offsetCash][securityColNum + offsetSecurities];
-  Logger.log("current balance "+currentCashBalance)
-  Logger.log("require balance "+ requiredCash)
-  Logger.log("current securities " + currentSecuritiesBalance)
-  Logger.log("required securities "+ requiredSecurities)
+  var currentCashBalance = dataMB[cashRow][3];
+  
+  var offsetColSecurities = -2
+  //Logger.log("security col num "+ securityColNum)
+  var currentSecuritiesBalance = dataMB[assetRow][securityColNum + offsetColSecurities];
+  //Logger.log("current CASH balance "+currentCashBalance)
+  //Logger.log("require CASH balance "+ requiredCash)
+  //Logger.log("current securities " + currentSecuritiesBalance)
+  //Logger.log("required securities "+ requiredSecurities)
   if(currentCashBalance>=requiredCash && currentSecuritiesBalance >= requiredSecurities){
     sufficient = true
     Logger.log(sufficient)
@@ -1780,6 +1828,41 @@ function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, ass
   return sufficient
 
 }
+
+//reuse this function for digitization / redemption KATE
+function checkIfEnoughCash(dataMB, cashRow, requiredCash){
+  var sufficient = false
+  offsetCash = -2
+  var currentCashBalance = dataMB[cashRow][3];
+  Logger.log("current balance "+currentCashBalance)
+  Logger.log("require balance "+ requiredCash)
+  if(currentCashBalance>=requiredCash){
+    sufficient = true
+    Logger.log(sufficient)
+    return sufficient
+  }
+  Logger.log(sufficient)
+  return sufficient
+
+}
+
+function checkIfEnoughAssets(dataMB, assetRow, securityColNum, requiredSecurities){
+  var sufficient = false  
+  var offsetColSecurities = -2
+  var currentSecuritiesBalance = dataMB[assetRow][securityColNum + offsetColSecurities];
+  
+  Logger.log("current securities " + currentSecuritiesBalance)
+  Logger.log("required securities "+ requiredSecurities)
+  if(currentSecuritiesBalance >= requiredSecurities){
+    sufficient = true
+    Logger.log(sufficient)
+    return sufficient
+  }
+  Logger.log(sufficient)
+  return sufficient
+
+}
+
 
 
 
@@ -2255,12 +2338,35 @@ function movePENDINGTradesFromTradingHistoryToTodaysTrades() {
 //THESE EMAILS WORK, HOWEVER NEED TO BE REVIEWED, MIGHT CREATE 1 FUNCTION THAT TAKES IN THE DETAILS OF THE EMAIL
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-//email sent when a customer is onboarded 
-function sendOnboardingEmail(recepientEmailAddress, customerID, cc) {
-  var message = "Hello,\n\nYour Paxos custody account has been approved. Please find the details of your account below, including instructions for depositing cash and/or securities and instructions to request a withdrawal.\n\nYour Customer ID is: " + customerID + "\n\nTo deposit cash, please send a Domestic Wire Transfer from a US bank account with the following instructions:\n\nBank Name: BMO\nHarris Bank NA\nBank Routing Number: 071000288\nBeneficiary Name: PAXOS TRUST COMPANY LLC\nBeneficiary Account Number: 3738200\nMemorandum: Your Customer ID (Please note, it is mandatory to include your Customer ID on your wire transfer so we can credit your account accordingly)\n\nTo deposit securities, please send an email to privatesecuritiesops@paxos.com with a request to initiate the deposit process with your Issuer.\n\nTo request a withdrawal of cash or securities, please send an email to privatesecuritiesops@paxos.com with a request for withdrawal. Please note that cash withdrawals will only be sent to the originating bank from which the initial deposit was sent, and securities withdrawals will only be sent to the Issuer’s custody.\n\nProcessing time for cash transfers is usually one business day, whereas processing time for securities transfers may vary depending on the Issuer. For any questions please contact privatesecuritiesops@paxos.com.\n\nThank you,\nPaxos Private Securities Custody"
+//email sent when a customer is onboarded  
+function sendOnboardingEmail() {
+  //Customer Onboarding tab details (used to get Customer email)
+  var ssCustOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(customerOnboarding);
+  var totalRows = getLastRow(customerOnboarding,"B:B")
+  var notationCO = 'B3:Z'+totalRows+1
+  var dataCustomerOnboarding = ssCustOnboarding.getRange(notationCO).getValues();
+  var customerOnboardingTabCustomerTrellisIDColNum = 3;
+  var customerOnboardingTabCustomerEmailColNum = 2;
+  var sentStatusColNum = 24
+  var onboardedStatusColNum = 22
 
-  var subject = "Your Paxos Private Securities Custody Account"
-  sendEmailWithoutAttachmentFromPrivateSecuritiesOps(recepientEmailAddress, subject, message, cc)
+  for(var i=0;i<dataCustomerOnboarding.length; i++){
+    if(dataCustomerOnboarding[i][onboardedStatusColNum]=="Already Onboarded"&& dataCustomerOnboarding[i][sentStatusColNum]!="Sent"){
+      Logger.log(dataCustomerOnboarding[i][sentStatusColNum] + "i is "+ i)
+      var trellisID = dataCustomerOnboarding[i][customerOnboardingTabCustomerTrellisIDColNum]
+      var recepientEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+      var message = "Hello,\n\nYour Paxos custody account has been approved. Please find the details of your account below, including instructions for depositing cash and/or securities and instructions to request a withdrawal.\n\nYour Customer ID is: " + trellisID + "\n\nTo deposit cash, please send a Domestic Wire Transfer from a US bank account with the following instructions:\n\nBank Name: BMO\nHarris Bank NA\nBank Routing Number: 071000288\nBeneficiary Name: PAXOS TRUST COMPANY LLC\nBeneficiary Account Number: 3738200\nMemorandum: Your Customer ID (Please note, it is mandatory to include your Customer ID on your wire transfer so we can credit your account accordingly)\n\nTo deposit securities, please send an email to privatesecuritiesops@paxos.com with a request to initiate the deposit process with your Issuer.\n\nTo request a withdrawal of cash or securities, please send an email to privatesecuritiesops@paxos.com with a request for withdrawal. Please note that cash withdrawals will only be sent to the originating bank from which the initial deposit was sent, and securities withdrawals will only be sent to the Issuer’s custody.\n\nProcessing time for cash transfers is usually one business day, whereas processing time for securities transfers may vary depending on the Issuer. For any questions please contact privatesecuritiesops@paxos.com.\n\nThank you,\nPaxos Private Securities Custody"
+
+      var subject = "Your Paxos Private Securities Custody Account"
+      var cc = "privatesecuritiesops@paxos.com"
+      sendEmailWithoutAttachmentFromPrivateSecuritiesOps(recepientEmailAddress, subject, message, cc)
+
+      var pointer = i+3  
+      ssCustOnboarding.getRange("Z"+pointer).setValue("Sent")
+      
+    }
+  }
+  
 }
 
 function testSendOnboardingEmail() {
@@ -2290,13 +2396,13 @@ function securitiesDigitizationCustomerAndIAEmails() {
 
 
   var uniqueIDColNum = 0;
-  var amountColNum = 4;
+  var amountColNum = 6;
   var trellisIDColNum = 3;
-  var securityNameColNum = 5;
-  var okayToSendEmails = 11;
+  var securityNameColNum = 7;
+  var okayToSendEmails = 13;
 
-  var customerEmailedProcessingColLetter = "N";
-  var issuerAgentEmailedColLetter = "O";
+  var customerEmailedProcessingColLetter = "P";
+  var issuerAgentEmailedColLetter = "Q";
 
   //Customer Onboarding tab details (used to get Customer email)
   var ssCustOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(customerOnboarding);
@@ -2464,6 +2570,82 @@ function addNewSecurityToLedger() {
   for (var i = 3; i < last_rows1 + 1; i++) {
     ss.getRange(i, last_column + 1).setValue(0);
   }
+
+}
+
+function getLastColumn(ss, rowRange){
+  var data = ss.getRange(rowRange).getValues();  
+  var count = 0
+  for(i=0; i<data.length;i++){
+    for(j=0; j<data[i].length;j++){
+      if (data[i][j]!=""){
+        count += 1;
+      }
+    }
+  }
+  Logger.log("count " + count)
+  return count
+}
+
+function testGetLastCOl(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  getLastColumn(ss,"A2:S2")
+
+}
+
+function addNewSecurityToLedgerNEW() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var ss1 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(securityOnboardSheet);
+  var ss2 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
+  var last_rows = getLastRow(securityOnboardSheet, "B:B");
+  var last_rows1 = getLastRow(masterBalancesSheet, "B:B");
+
+  var secOnboardingTabOkToOnboardColLetter = "O";
+  var secOnboardingTabUniqueColLetter = "P";
+  var secOnboardingTabNewTickerColLetter = "K";
+  var secOnboardingTabDateTimeColLetter = "R";
+  var secOnboardingTabOnboardedColLetter = "Q";
+
+
+
+  for (var i = 3; i < last_rows + 2; i++) {
+
+    if (ss1.getRange(secOnboardingTabOkToOnboardColLetter + i).getValue() == "YES" && ss1.getRange(secOnboardingTabUniqueColLetter + i).getValue() == "Unique") {
+
+      var new_ticker = ss1.getRange(secOnboardingTabNewTickerColLetter + i).getValue();
+
+      // update master balance sheet by include new ticker as column
+      //var last_column = ss.getLastColumn();
+      //Logger.log("LAST IS" +last_column)
+      var last_column = getLastColumn(ss,"A2:S2")
+      ss.insertColumns(last_column + 1);
+      ss.getRange(2, last_column + 1).setValue(new_ticker);
+
+      // update balance history by include new ticker as three column (previous, delta, new)
+      //var last_column1 = ss2.getLastColumn();
+      //ss2.insertColumns(last_column1+1); 
+      //ss2.insertColumns(last_column1+2);
+      //ss2.insertColumns(last_column1+3);
+
+      //ss2.getRange(2,last_column1+1).setValue(new_ticker);
+      //ss2.getRange(2,last_column1+1).setValue("previous"+new_ticker);
+      //ss2.getRange(2,last_column1+2).setValue("delta"+new_ticker);
+      //ss2.getRange(2,last_column1+3).setValue("new"+new_ticker);      
+
+      // update Securities Onboarding column L to "YES" and add date time to col M
+      //ss1.getRange(secOnboardingTabOkToOnboardColLetter + i).setValue("Already Onboarded");
+      ss1.getRange(secOnboardingTabOnboardedColLetter + i).setValue("Onboarded");
+      var currentTime = new Date();
+      ss1.getRange(secOnboardingTabDateTimeColLetter + i).setValue(currentTime);
+
+    }
+  }
+
+  // set 0 for new added ticker in master balance sheet
+  for (var i = 3; i < last_rows1 + 1; i++) {
+    ss.getRange(i, last_column + 1).setValue(0);
+  }
+  
 
 }
 
@@ -2687,191 +2869,34 @@ function unpivot(data, fixColumns, fixRows, titlePivot, titleValue) {
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////
-//SECURITIES REDEMPTION
-//Consists of 2 functions 
-//1) From Customer's Account to Holding Account
-//2) From Holding Account and Off Platform
-/////////////////////////////////////////////////////////////////////////////////// 
-function redeemSharesFromCustomertoHoldingAccountNEW() {
-  //var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
-  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-
-  //this section of the data is used for updating securities 
-  var notationSecurities = "B2:Z" + totalRowsMB + 1
-
-  //securities redeem tab
-  var ssSecRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(secRedeem);
-  const totalRowsSR = getLastRow(secRedeem, 'C:C');
-  var notationSecRedeem = "B2:AC" + totalRowsSR + 1
-  var dataSecRedeem = ssSecRedeem.getRange(notationSecRedeem).getValues()
-  var operation = "ASSET REDEMPTION TO HOLDING"
-
-  var uniqueIDColNum = 0;
-  var okayToRedeemFromAcctColNum = 14;
-  var trellisIDColNum = 3;
-  var amountColNum = 4;
-  var securityNameColNum = 5;
-  var securityIndexinMBColNum = 9;
-  var rowIndexOfCustomerInMBColNum = 10;
-  var rowIndexOfCustomerHoldingInMBColNum = 11;
-  var redeemedColLetter = 'Q';
-  var redeemedColNum = 15;
-  var uniqueIDColLetter = 'X';
-  var dateTimeCustToHoldColLetter = "Y"
-
-  //Balance History info
-  var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
-
-  //Securities Onboarding tab details (used to get issuer agent email)
-  var ssSecuritiesOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(securitiesOnboarding);
-  var notationSO = 'J3:K';
-  var dataSecuritiesOnboarding = ssSecuritiesOnboarding.getRange(notationSO).getValues();
-  var securitiesOnboardingTabSecurityColNum = 1;
-  var issuerAgentEmailColNum = 0;
-
-
-  //loop through the data 
-    for (var i = 0; i < dataSecRedeem.length; i++) {
-    if (dataSecRedeem[i][okayToRedeemFromAcctColNum] == "YES" && dataSecRedeem[i][redeemedColNum] != "Redeemed") {
-      var uniqueID = dataSecRedeem[i][uniqueIDColNum];
-      var trellisID = dataSecRedeem[i][trellisIDColNum];
-      var holdingTrellisID = "Holding_" + trellisID;
-      var customerRow = dataSecRedeem[i][rowIndexOfCustomerInMBColNum];
-      var holdingCustomerRow = dataSecRedeem[i][rowIndexOfCustomerHoldingInMBColNum];
-      var sharesQuantity = dataSecRedeem[i][amountColNum];
-      var securityColNumInMB = dataSecRedeem[i][securityIndexinMBColNum];
-      var securityCUSIP = dataSecRedeem[i][securityNameColNum]
-
-      var dataMBSecurities = ssMB.getRange(notationSecurities).getValues();
-      //debit shares from customer account
-      updateCustomerSecurityBalance(ssMB, dataMBSecurities, customerRow, -sharesQuantity, securityColNumInMB, uniqueID, trellisID, operation, securityCUSIP, ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1
-      //credit shares to holding account
-      updateCustomerSecurityBalance(ssMB, dataMBSecurities, holdingCustomerRow, +sharesQuantity, securityColNumInMB, uniqueID, holdingTrellisID, operation, securityCUSIP, ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1
-
-      var pointer = i + 2
-
-      ssSecRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
-      ssSecRedeem.getRange(uniqueIDColLetter + pointer).setValue(uniqueID)
-
-      var currentTime = new Date();
-      ssSecRedeem.getRange(dateTimeCustToHoldColLetter + pointer).setValue(currentTime)
-
-      var issuerAgentEmailedColLetter = "R";
-
-      
-      var customerEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      var issuerEmailAddress = returnEmail(dataSecuritiesOnboarding, securityCUSIP, securitiesOnboardingTabSecurityColNum, issuerAgentEmailColNum)
-   
-
-
-      sendSecuritiesRedemptionCapTableUpdateEmail(issuerEmailAddress, trellisID, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
-      ssSecRedeem.getRange(issuerAgentEmailedColLetter + pointer).setValue("Sent")
-      sendSecuritiesRedemptionInProgressEmailToCustomer(customerEmailAddress, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
-
-    }
-  }
-}
-
-
-function redeemSharesFromHoldingtoOFFPlatformNEW() {
-
-  //securities redeem tab
-  var ssSecRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(secRedeem);
-  const totalRowsSR = getLastRow(secRedeem, 'C:C');
-  var notationSecRedeem = "B2:AC" + totalRowsSR + 1
-  var dataSecRedeem = ssSecRedeem.getRange(notationSecRedeem).getValues()
-  
-  var operation = "ASSET REDEMPTION OFF PLATFORM"
-
-  //rows in Sec Redeem
-  var uniqueIDColNum = 0;
-  var okayToRedeemFromHoldingColNum = 20;
-  var trellisIDColNum = 3;
-  var amountColNum = 4;
-  var securityNameColNum = 5;
-
-  //columns & rows in master balances 
-  var securityIndexinMBColNum = 9;
-  var rowIndexOfCustomerInMBColNum = 10;
-  var rowIndexOfCustomerHoldingInMBColNum = 11;
-  var redeemedColLetter = 'W';
-  var redeemedColNum = 21;
-
-  var dateTimeOffPlatformColLetter = "Z"
-  var customerEmailedConfirmedColLetter = "AA"
-
-  //Balance History info
-  var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
-  
-  //Master Balances info
-  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-  var notationMB = "B2:Z" + totalRowsMB + 1
-
-
-  //loop through the data 
-  for (var i = 0; i < dataSecRedeem.length; i++) {
-    if (dataSecRedeem[i][okayToRedeemFromHoldingColNum] == "YES" && dataSecRedeem[i][redeemedColNum] != "Redeemed") {
-      var uniqueID = dataSecRedeem[i][uniqueIDColNum];
-      var trellisID = dataSecRedeem[i][trellisIDColNum];
-      var holdingTrellisID = "Holding_" + trellisID;
-      var customerRow = dataSecRedeem[i][rowIndexOfCustomerInMBColNum];
-      var holdingCustomerRow = dataSecRedeem[i][rowIndexOfCustomerHoldingInMBColNum];
-      var sharesQuantity = dataSecRedeem[i][amountColNum];
-      var securityColNumInMB = dataSecRedeem[i][securityIndexinMBColNum];
-      var securityCUSIP = dataSecRedeem[i][securityNameColNum]
-
-      var dataMBSecurities = ssMB.getRange(notationMB).getValues();
-      //debit shares from holding account
-      updateCustomerSecurityBalance(ssMB, dataMBSecurities, holdingCustomerRow, -sharesQuantity, securityColNumInMB, uniqueID, holdingTrellisID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
-      totalRowsBalancesHistory +=1
-
-
-      var pointer = i + 2
-      var currentTime = new Date();
-      ssSecRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
-      ssSecRedeem.getRange(dateTimeOffPlatformColLetter + pointer).setValue(currentTime)
-
-      //email customers letting them know shares have been redeemed 
-      var customerEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
-      sendSecuritiesRedemptionCompleteEmailToCustomer(customerEmailAddress, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
-      ssSecRedeem.getRange(customerEmailedConfirmedColLetter + pointer).setValue("Sent")
-
-
-    }
-  }
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //CASH DIGITIZATION
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //updates the Master Balances + Balances History + marks the digitized cash as "Digitized" to avoid double digitization
-function digitizeCashNEW() {
+function digitizeCash() {
   var ssCashCreate = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashCreate);
   const totalRowsCashCreate = getLastRow(cashCreate, 'H:H');
-  var notationCashCreate = "H3:R" + totalRowsCashCreate + 1
+  var notationCashCreate = "H3:X" + totalRowsCashCreate + 1
   var dataCashCreate = ssCashCreate.getRange(notationCashCreate).getValues()
 
   //column numbers in MB & Cash Create
-  var customerRowIndexinMBColNum = 0;
-  var customerIDColNum = 1;
-  var cashAmountColNum = 2;
-  var uniqueIDColNum = 3;
-  var okayToDigitizeColNum = 7;
-  var statusColNum = 8;
-  var digitizedColLetter = "P"
-  var dateTimeDigitizedColLetter = "Q"
-  var customerEmailedColLetter = "R"
+  //var customerRowIndexinMBColNum = 0;
+  var customerIDColNum = 0;
+  var cashAmountColNum = 5;
+  var uniqueIDColNum = 6;
+  var okayToDigitizeColNum = 10;
+  var statusColNum = 11;
+  var digitizedColLetter = "S"
+  var dateTimeDigitizedColLetter = "U"
+  var customerEmailedColLetter = "X"
 
   var operation = "CASH DIGITIZATION"
 
   //use the following to update cash values in Master Balances
   var ssMB = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
   const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-  var notationMB = "B2:E" + totalRowsMB + 1
+  var notationMB = "B1:E" + totalRowsMB + 1
 
   //retrieving information regarding # of rows in Balances History outside the for loop, adding to totalRows inside the if statement so as to minimize run time 
   //var ssBalancesHistory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
@@ -2883,15 +2908,20 @@ function digitizeCashNEW() {
   var dataCustomerOnboarding = ssCustOnboarding.getRange(notationCO).getValues();
   var customerOnboardingTabCustomerTrellisIDColNum = 3;
   var customerOnboardingTabCustomerEmailColNum = 2;
-
+  
+  //master balances column with trelli IDs / MPIDs
+   var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
   for (var i = 0; i < dataCashCreate.length; i++) {
     //Chekcs that action ID is unique and that the value has not yet been digitized  
     if (dataCashCreate[i][statusColNum] != "Digitized" && dataCashCreate[i][okayToDigitizeColNum] == "YES") {
-      var customerRow = dataCashCreate[i][customerRowIndexinMBColNum]
+      //var customerRow = dataCashCreate[i][customerRowIndexinMBColNum]
       var cash = dataCashCreate[i][cashAmountColNum]
       var uniqueID = dataCashCreate[i][uniqueIDColNum]
       var trellisID = dataCashCreate[i][customerIDColNum]
+
+      var customerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, trellisID)
       //data update intentionally inside the for loop so that we have up to date info from MB every time we need to update balances
       var dataMB = ssMB.getRange(notationMB).getValues()
 
@@ -2917,57 +2947,65 @@ function digitizeCashNEW() {
 //CASH REDEMPTION
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function redeemCashNEW() {
+function redeemCash(){
 
   var customerIDColNum = 2;
-  var cashAmountColNum = 3;
-  var customerRowIndexinMBColNum = 12;
+  var cashAmountColNum = 4;
+  //var customerRowIndexinMBColNum = 12;
   var uniqueIDColNum = 0;
-  var redeemedColNum = 9;
-  var okToRedeemColNum = 8;
-  var redeemedColLetter = "K";
-  var okToRedeemColLetter = "J";
-  var preservingUniqueIDColLetter = "L";
-  var dateTimeRedeemedColLetter = "M";
+  var redeemedColNum = 10;
+  var okToRedeemColNum = 9;
+  var redeemedColLetter = "L";
+  //var okToRedeemColLetter = "J";
+  var preservingUniqueIDColLetter = "M";
+  var dateTimeRedeemedColLetter = "N";
 
   var operation = "CASH REDEMPTION"
 
   //Cash redemption tab 
   var ssCashRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashRedeem);
   const totalRowsCashRedeem = getLastRow(cashRedeem, 'C:C');
-  var notationCashRedeem = "B3:U" + totalRowsCashRedeem + 1
+  var notationCashRedeem = "B3:V" + totalRowsCashRedeem + 1
   var dataCashRedeem = ssCashRedeem.getRange(notationCashRedeem).getValues() 
 
   //Balances History info
   var totalRowsBalancesHistory = ssBalancesHistory.getLastRow(); 
 
+  //master balances column with trelli IDs / MPIDs
+   var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
+
+  var notationMB = "B1:E" + totalRowsMB + 1
 
 
   for (var i = 0; i < dataCashRedeem.length; i++) {
 
     //Chekcs that the value has not yet been redeemed  
     if (dataCashRedeem[i][redeemedColNum] != "Redeemed" && dataCashRedeem[i][okToRedeemColNum] == "YES") {
-      var customerRow = dataCashRedeem[i][customerRowIndexinMBColNum]
+      //var customerRow = dataCashRedeem[i][customerRowIndexinMBColNum]
       var cash = dataCashRedeem[i][cashAmountColNum]
       var uniqueID = dataCashRedeem[i][uniqueIDColNum]
       var trellisID = dataCashRedeem[i][customerIDColNum]
 
+      var customerRow =  getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, trellisID)
       dataMB = ssMB.getRange(notationMB).getValues()
 
-      updateCustomerCashBalance(ssMB, dataMB, customerRow, -cash, uniqueID, trellisID, operation, ssBalancesHistory, totalRowsBalancesHistory)
-      totalRowsBalancesHistory += 1
+      if(checkIfEnoughCash(dataMB, customerRow, cash)){
+        Logger.log("passed the test")
+        updateCustomerCashBalance(ssMB, dataMB, customerRow, -cash, uniqueID, trellisID, operation, ssBalancesHistory, totalRowsBalancesHistory)
+        totalRowsBalancesHistory += 1
 
 
-      //after balance is updated, change Redeemed col to read "Redeemed" to avoid double redemption
+        //after balance is updated, change Redeemed col to read "Redeemed" to avoid double redemption
 
-      var pointer = i + 3
-      ssCashRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
-      ssCashRedeem.getRange(okToRedeemColLetter + pointer).setValue("Already Redeemed")
-      ssCashRedeem.getRange(preservingUniqueIDColLetter + pointer).setValue(dataCashRedeem[i][uniqueIDColNum])
+        var pointer = i + 3
+        ssCashRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
+        //ssCashRedeem.getRange(okToRedeemColLetter + pointer).setValue("Already Redeemed")
+        ssCashRedeem.getRange(preservingUniqueIDColLetter + pointer).setValue(dataCashRedeem[i][uniqueIDColNum])
 
-      var currentTime = new Date();
-      ssCashRedeem.getRange(dateTimeRedeemedColLetter + pointer).setValue(currentTime)
-
+        var currentTime = new Date();
+        ssCashRedeem.getRange(dateTimeRedeemedColLetter + pointer).setValue(currentTime)
+      }
 
     }
   }
@@ -2976,19 +3014,19 @@ function redeemCashNEW() {
 //sends email confirming that customer's cash redemption is complete
 function emailCustomerConfirmingCashRedemption() {
   
-  var ssCashRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashRedeem);
+  //var ssCashRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashRedeem);
 
   var customerIDColNum = 2;
-  var cashAmountColNum = 3;
+  var cashAmountColNum = 4;
   var uniqueIDColNum = 0;
-  var okToSendEmailToCustomerColNum = 18;
+  var okToSendEmailToCustomerColNum = 19;
 
-  var emailSentToCustomerColLetter = "U"
+  var emailSentToCustomerColLetter = "V"
 
   //Cash redemption tab 
   var ssCashRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cashRedeem);
   const totalRowsCashRedeem = getLastRow(cashRedeem, 'C:C');
-  var notationCashRedeem = "B3:U" + totalRowsCashRedeem + 1
+  var notationCashRedeem = "B3:V" + totalRowsCashRedeem + 1
   var dataCashRedeem = ssCashRedeem.getRange(notationCashRedeem).getValues()  
 
   for (var i = 0; i < dataCashRedeem.length; i++) {
@@ -3013,28 +3051,26 @@ function emailCustomerConfirmingCashRedemption() {
 //DIGITIZE SECURITIES
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //updates the Master Balances + Balances History + marks the digitized shares as "Digitized" to avoid double digitization
-
-
-function digitizeSharesNEW() {
+ 
+function digitizeShares() {
   var operation = "ASSET DIGITIZATION"
 
   var uniqueIDColNum = 0;
-  var okToDigitizeColNum = 20;
-  var digitizedColNumber = 21;
-  var amountColNum = 4;
+  var okToDigitizeColNum = 22;
+  var digitizedColNumber = 23;
+  var amountColNum = 6;
   var trellisIDColNum = 3;
-  var securityNameColNum = 5;
-  var securityIndexinMBColNum = 25;
-  var rowIndexOfCustomerInMBColNum = 26;
+  var securityNameColNum = 7;
+  var securityIndexinMBColNum = 27;
 
   //used to mark fields post digitization
-  var dateTimeColLetter = "Y";
-  var okToDigitizeColLetter = "V"
-  var customerEmailedColLetter = "Z";
+  var dateTimeColLetter = "AA";
+  var digitizedColLetter = "Y"
+  var customerEmailedColLetter = "AB";
 
   //Master balances tab info
   var totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
-  var notationMB = "B2:Z" + totalRowsMB + 1
+  var notationMB = "B1:Z" + totalRowsMB + 1
 
   //Balances History tab info
   var totalRowsBalancesHistory = ssBalancesHistory.getLastRow(); 
@@ -3047,13 +3083,18 @@ function digitizeSharesNEW() {
 
 
 
+  //master balances column with trelli IDs / MPIDs
+  var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
+
 
   //loop through the sec create data 
   for (var i = 0; i < dataSecCreate.length; i++) {
     if (dataSecCreate[i][okToDigitizeColNum] == "YES" && dataSecCreate[i][digitizedColNumber] != "Digitized") {
       var uniqueID = dataSecCreate[i][uniqueIDColNum];
       var trellisID = dataSecCreate[i][trellisIDColNum];
-      var customerRow = dataSecCreate[i][rowIndexOfCustomerInMBColNum];
+      var customerRow =  getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, trellisID)
+      //var customerRow = dataSecCreate[i][rowIndexOfCustomerInMBColNum];
       var sharesQuantity = dataSecCreate[i][amountColNum];
       var securityColNumInMB = dataSecCreate[i][securityIndexinMBColNum];
       var securityCUSIP = dataSecCreate[i][securityNameColNum]
@@ -3069,8 +3110,8 @@ function digitizeSharesNEW() {
       var pointer = i + 2
 
       var currentTime = new Date();
-      var valuesArray =[["Already Digitized", "Digitized",uniqueID, currentTime]]
-      ssSecCreate.getRange((okToDigitizeColLetter + pointer)+":"+(dateTimeColLetter + pointer)).setValues(valuesArray)
+      var valuesArray =[["Digitized",uniqueID, currentTime]]
+      ssSecCreate.getRange((digitizedColLetter + pointer)+":"+(dateTimeColLetter + pointer)).setValues(valuesArray)
 
       var recepientEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
       
@@ -3083,44 +3124,181 @@ function digitizeSharesNEW() {
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////
+//SECURITIES REDEMPTION
+/***
+ * Consists of 2 functions 
+  1) Redeem from Customer's Account to Holding Account
+  2) Redeem from Holding Account and Off Platform
+ */
+/////////////////////////////////////////////////////////////////////////////////// 
+function redeemSharesFromCustomertoHolding() {
+  var operation = "ASSET REDEMPTION TO HOLDING"
+  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
 
-//function updates customer's balances (there is a separate function that updates balances for clearlist and paxos, this is only for customers)
+  //this section of the data is used for updating securities balance in MB
+  var notationSecurities = "B1:Z" + totalRowsMB + 1
 
-//rewrite digitizaiton / redemption & delete this function
-function updateBalancesHistorySecDigitization(timeStamp, tradeID, customer, securityID, securityPreviousAmount, securityDelta, securityNewAmount, previousSecurityColNumInBalancesHistory) {
+  //securities redeem tab
+  var ssSecRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(secRedeem);
+  const totalRowsSR = getLastRow(secRedeem, 'C:C');
+  var notationSecRedeem = "B2:AC" + totalRowsSR + 1
+  var dataSecRedeem = ssSecRedeem.getRange(notationSecRedeem).getValues()
+  
+  //variables in Sec Redeem tab
+  var uniqueIDColNum = 0;
+  var okayToRedeemFromAcctColNum = 13;
+  var trellisIDColNum = 2;
+  var amountColNum = 4;
+  var securityNameColNum = 5;
+  var securityIndexinMBColNum = 8;
+  //var rowIndexOfCustomerInMBColNum = 10;
+  //var rowIndexOfCustomerHoldingInMBColNum = 11;
+  var redeemedColLetter = 'P';
+  var redeemedColNum = 14;
+  var uniqueIDColLetter = 'AB';
+  var dateTimeCustToHoldColLetter = "Q"
+  var issuerAgentEmailedColLetter = "R";
+  var customerEmailedColLetter = "S"
 
-  //col for timestamp is already known, can be hard coded
-  var timeStampColNum = 1;
-  var tradeIDColNum = 2;
+  //Balance History info
+  var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
 
-  //col for customer name is already known, can be hard coded 
-  var customerColNum = 3;
+  //Securities Onboarding tab details (used to get issuer agent email)
+  var ssSecuritiesOnboarding = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(securitiesOnboarding);
+  var notationSO = 'J3:K';
+  var dataSecuritiesOnboarding = ssSecuritiesOnboarding.getRange(notationSO).getValues();
+  //KATE MIGHT NEED TO UPDATE THIS IF WE CHANGE THE SECURITIES ONBOARDING TAB STRUCTURE
+  var securitiesOnboardingTabSecurityColNum = 1;
+  var issuerAgentEmailColNum = 0;
 
-  //gets the total number of rows in the spreadsheet so as to append it and not overwrite
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(balancesHistory);
-  const totalRows = getLastRow(balancesHistory, 'A:A');
-  //get the starting row
-  var i = totalRows + 1;
+  //master balances column with trelli IDs or MPIDs
+  var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
-  //calculate the columns for deltaSecurity and newSecurity values 
-  var newSecurityBalanceColNum = previousSecurityColNumInBalancesHistory + 2;
-  var deltaSecurityBalanceColNum = previousSecurityColNumInBalancesHistory + 1;
+  //loop through the data 
+    for (var i = 0; i < dataSecRedeem.length; i++) {
+    if (dataSecRedeem[i][okayToRedeemFromAcctColNum] == "YES" && dataSecRedeem[i][redeemedColNum] != "Redeemed") {
+      var uniqueID = dataSecRedeem[i][uniqueIDColNum];
+      var trellisID = dataSecRedeem[i][trellisIDColNum];
+      var holdingTrellisID = "Holding_" + trellisID;
+      //var customerRow = dataSecRedeem[i][rowIndexOfCustomerInMBColNum];
+      var customerRow =  getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, trellisID)
+      //var holdingCustomerRow = dataSecRedeem[i][rowIndexOfCustomerHoldingInMBColNum];
+      var holdingCustomerRow =  getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, holdingTrellisID)
+      var sharesQuantity = dataSecRedeem[i][amountColNum];
+      var securityColNumInMB = dataSecRedeem[i][securityIndexinMBColNum];
+      var securityCUSIP = dataSecRedeem[i][securityNameColNum]
 
+      var dataMBSecurities = ssMB.getRange(notationSecurities).getValues();
+      //debit shares from customer account
 
-  //populate timestamp, customer ID, changes in USD, changes in securities  
-  ss.getRange(i, timeStampColNum).setValue(timeStamp);
-  ss.getRange(i, tradeIDColNum).setValue(tradeID);
-  ss.getRange(i, customerColNum).setValue(customer);
-  ss.getRange(i, previousSecurityColNumInBalancesHistory).setValue(securityPreviousAmount);
-  ss.getRange(i, deltaSecurityBalanceColNum).setValue(securityDelta);
-  ss.getRange(i, newSecurityBalanceColNum).setValue(securityNewAmount);
+      if(checkIfEnoughAssets(dataMBSecurities, customerRow, securityColNumInMB, sharesQuantity)){
+        updateCustomerSecurityBalance(ssMB, dataMBSecurities, customerRow, -sharesQuantity, securityColNumInMB, uniqueID, trellisID, operation, securityCUSIP, ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1
+        //credit shares to holding account
+        updateCustomerSecurityBalance(ssMB, dataMBSecurities, holdingCustomerRow, +sharesQuantity, securityColNumInMB, uniqueID, holdingTrellisID, operation, securityCUSIP, ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1
 
+        var pointer = i + 2
+
+        ssSecRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
+        ssSecRedeem.getRange(uniqueIDColLetter + pointer).setValue(uniqueID)
+
+        var currentTime = new Date();
+        ssSecRedeem.getRange(dateTimeCustToHoldColLetter + pointer).setValue(currentTime)
+        
+        var customerEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        var issuerEmailAddress = returnEmail(dataSecuritiesOnboarding, securityCUSIP, securitiesOnboardingTabSecurityColNum, issuerAgentEmailColNum)
+    
+
+        sendSecuritiesRedemptionCapTableUpdateEmail(issuerEmailAddress, trellisID, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
+        ssSecRedeem.getRange(issuerAgentEmailedColLetter + pointer).setValue("Sent")
+        sendSecuritiesRedemptionInProgressEmailToCustomer(customerEmailAddress, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
+
+        ssSecRedeem.getRange(customerEmailedColLetter + pointer).setValue("Sent")
+      }
+    }
+  }
 }
 
 
+function redeemSharesFromHoldingtoOFFPlatform() {
+  
+  var operation = "ASSET REDEMPTION OFF PLATFORM"
+ 
+  //securities redeem tab
+  var ssSecRedeem = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(secRedeem);
+  const totalRowsSR = getLastRow(secRedeem, 'C:C');
+  var notationSecRedeem = "B2:AC" + totalRowsSR + 1
+  var dataSecRedeem = ssSecRedeem.getRange(notationSecRedeem).getValues()
+  
+  
+
+  //rows in Sec Redeem
+  var uniqueIDColNum = 0;
+  var okayToRedeemFromHoldingColNum = 22;
+  var trellisIDColNum = 2;
+  var amountColNum = 4;
+  var securityNameColNum = 5;
+  var redeemedColLetter = 'Y';
+  var redeemedColNum = 23;
+  var dateTimeOffPlatformColLetter = "Z"
+  var customerEmailedConfirmedColLetter = "AA"
+
+  //column of security in master balances 
+  var securityIndexinMBColNum = 8;
+  
+
+  //Balance History info
+  var totalRowsBalancesHistory = ssBalancesHistory.getLastRow();
+  
+  //Master Balances info
+  const totalRowsMB = getLastRow(masterBalancesSheet, 'B:B');
+  var notationMB = "B1:Z" + totalRowsMB + 1
+  //master balances column with trelli IDs or MPIDs
+  var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
+  var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
 
+  //loop through the data 
+  for (var i = 0; i < dataSecRedeem.length; i++) {
+    if (dataSecRedeem[i][okayToRedeemFromHoldingColNum] == "YES" && dataSecRedeem[i][redeemedColNum] != "Redeemed") {
+      Logger.log("insideloop")
+      var uniqueID = dataSecRedeem[i][uniqueIDColNum];
+      var trellisID = dataSecRedeem[i][trellisIDColNum];
+      var holdingTrellisID = "Holding_" + trellisID;
+      //var customerRow = dataSecRedeem[i][rowIndexOfCustomerInMBColNum];
+      //var holdingCustomerRow = dataSecRedeem[i][rowIndexOfCustomerHoldingInMBColNum];
+      var holdingCustomerRow =  getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, holdingTrellisID)
+      var sharesQuantity = dataSecRedeem[i][amountColNum];
+      var securityColNumInMB = dataSecRedeem[i][securityIndexinMBColNum];
+      var securityCUSIP = dataSecRedeem[i][securityNameColNum]
 
+
+      var dataMBSecurities = ssMB.getRange(notationMB).getValues();
+
+      if(checkIfEnoughAssets(dataMBSecurities, holdingCustomerRow, securityColNumInMB, sharesQuantity)){
+
+        //debit shares from holding account
+        updateCustomerSecurityBalance(ssMB, dataMBSecurities, holdingCustomerRow, -sharesQuantity, securityColNumInMB, uniqueID, holdingTrellisID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        totalRowsBalancesHistory +=1
+
+
+        var pointer = i + 2
+        var currentTime = new Date();
+        ssSecRedeem.getRange(redeemedColLetter + pointer).setValue("Redeemed")
+        ssSecRedeem.getRange(dateTimeOffPlatformColLetter + pointer).setValue(currentTime)
+
+        //email customers letting them know shares have been redeemed 
+        var customerEmailAddress = returnEmail(dataCustomerOnboarding, trellisID, customerOnboardingTabCustomerTrellisIDColNum, customerOnboardingTabCustomerEmailColNum)
+        sendSecuritiesRedemptionCompleteEmailToCustomer(customerEmailAddress, sharesQuantity, securityCUSIP, privateSecuritiesOpsEmail, uniqueID)
+        ssSecRedeem.getRange(customerEmailedConfirmedColLetter + pointer).setValue("Sent")
+      }
+
+    }
+  }
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //SENDING MASTER BALANCES TO CLEARLIST
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3243,31 +3421,11 @@ function convertBalanceHistoryToCSV() {
 
 
 
-//DAN & ETHAN use this to test 
-function testreturnCustomerEmail() {
-  var email = undefined
-  email = returnCustomerEmail("kate123")
-  Logger.log(email)
-}
-
-
-
 
 //SEND EMAILS TO ISSUER AGENTS TO CONFIRM TRADE DETAILS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-//DAN & ETHAN you can also use this function and write similar functions to see if the function returns the right email 
-//testing returnIssuerAgentEmail
-function testRetrunIssuerAgentEmail() {
-  var email1 = returnIssuerAgentEmail('TEST5');
-  var email2 = returnIssuerAgentEmail('TEST23434234');
-  Logger.log(email1)
-  Logger.log(email2)
-}
 
 //function sends emails to issuer agents 
 
