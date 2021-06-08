@@ -261,6 +261,12 @@ var todayTradeInsertValueColPendingGTS = "AY";
 var todayTradeInsertValueColSettledGTS = "AZ";
 
 
+var tradeHistoryOutputPendingGTSFilter = ["PENDING","GTSY","50077"];
+var tradeHistoryOutputSettledGTSFilter = ["SETTLED","GTSY","50077"];
+
+var todayTradeOutputColPendingGTSFilter = [0,3,5,2,4];
+
+
 
 function omnibusOnboarding(){
   onboardingToMasterBalance(omnibusOnboardingImportSheet, masterBalanceSheet, rangeInMasterBalanceTab, omnibusOnboardingInputRange, omnibusOnboardingColFilter, omnibusOnboardingFilter, startColInMasterBalance, numberColToFillMasterBalance)
@@ -501,6 +507,41 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
       Logger.log(err);
       Browser.msgBox(err);
     }
+  }else if(todayTradeOutputFilter.length==3 && todayTradeOutputFilter[2]=="50077"){
+    Logger.log("With 3 filters for GTS trading history");
+      try {
+      var csvFile = undefined;
+      var name = "GTS";
+
+      if (data.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data.length; row++) {
+          if ( data[row][0] == "Transaction Type") {
+            csv += data2[row].join(",") + "\r\n";
+            Logger.log("Add title row")
+          }
+
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] 
+            && ((data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[3]] == todayTradeOutputFilter[2]) |(data[row][todayTradeOutputColFilter[4]] == todayTradeOutputFilter[2]))) {
+
+                  if (row < data2.length - 1) {
+                    csv += data2[row].join(",") + "\r\n";
+                  }
+                  else {
+                    csv += data2[row];
+                    Logger.log("Adding row to CSV")
+                  }
+            }
+          }
+        }
+        csvFile = csv;
+      }
+      catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+      return [csvFile,name];
+
   }else if(todayTradeOutputFilter.length==3){
     Logger.log("With 3 filters for settled");
       try {
@@ -699,6 +740,14 @@ function downloadGTSPositions(){
  */
 function downloadTradingHistoryCSVCL(){
   convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange)
+}
+
+function downloadGTSPendingTradingHistoryCSV(){
+  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputPendingGTSFilter, todayTradeOutputColPendingGTSFilter)
+}
+
+function downloadGTSSettledTradingHistoryCSV(){
+  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputSettledGTSFilter, todayTradeOutputColPendingGTSFilter)
 }
 
 //CHLOE pls fill in this function
