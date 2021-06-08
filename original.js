@@ -192,6 +192,7 @@ var startColInTacTab = 1;
 
 var todaytradeoutputFolderName = "Todays_Trades_Export";
 var todayTradeRangePending = "B2:AI";
+var todayTradeRangePendingGTS = "B2:AZ";
 var todayTradeRangeSettled = "B2:AV";
 var todayTradeOutputRange = "B2:R";
 var tradingHistoryOutputRange = "A1:Q";
@@ -250,6 +251,15 @@ var brokerDealerOnboardingRange ="F2:U"
 //index 3 = date col
 var brokerDealerOnboardingColFilter = [14,2,2,21]
 var brokerDealerOnboardingFilter = ["YES"];
+
+
+var todayTradeOutputPendingGTSFilter = ["PENDING","GTSY","50077","SENT"];
+var todayTradeOutputSettledGTSFilter = ["SETTLED","GTSY","50077","SENT"];
+var todayTradeOutputColPendingGTSFilter = [0,3,5,2,4,49];
+var todayTradeOutputColSettledGTSFilter = [0,3,5,2,4,50];
+var todayTradeInsertValueColPendingGTS = "AY";
+var todayTradeInsertValueColSettledGTS = "AZ";
+
 
 
 function omnibusOnboarding(){
@@ -433,6 +443,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
     Logger.log("Without Filter");
     try {
       var csvFile = undefined;
+      var name = "";
       if (data2.length > 1) {
         var csv = "";
         for (var row = 0; row < data2.length; row++) {
@@ -446,7 +457,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
         }
         csvFile = csv;
       }
-      return csvFile;
+      return [csvFile,name];
     }
     catch (err) {
       Logger.log(err);
@@ -456,6 +467,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
     try {
       //var data = activeRange.getValues();
       var csvFile = undefined;
+      var name = "";
 
       // loop through the data in the range and build a string with the csv data
       if (data.length > 1) {
@@ -483,7 +495,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
         }
         csvFile = csv;
       }
-      return csvFile;
+      return [csvFile,name];
     }
     catch (err) {
       Logger.log(err);
@@ -493,6 +505,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
     Logger.log("With 3 filters for settled");
       try {
       var csvFile = undefined;
+      var name = "";
 
       if (data.length > 1) {
         var csv = "";
@@ -525,9 +538,52 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
       Logger.log(err);
       Browser.msgBox(err);
     }
-      return csvFile;
+      return [csvFile,name];
+    }else if(todayTradeOutputFilter.length==4){
+
+        Logger.log("covert to csv for GTS");
+    try {
+      var csvFile = undefined;
+      var name = "GTS";
+
+      if (data.length > 1) {
+        var csv = "";
+        for (var row = 0; row < data.length; row++) {
+          if ( data[row][0] == "Transaction Type") {
+            csv += data2[row].join(",") + "\r\n";
+            Logger.log("Add title row")
+          }
+          if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] 
+            && (data[row][todayTradeOutputColFilter[5]] != todayTradeOutputFilter[3])
+            && ((data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[3]] == todayTradeOutputFilter[2]) |(data[row][todayTradeOutputColFilter[4]] == todayTradeOutputFilter[2]))
+            ) {
+              Logger.log(row);
+                  var change_row_number = row + 2;
+
+                  if (row < data2.length - 1) {
+                    csv += data2[row].join(",") + "\r\n";
+                  }
+                  else {
+                    csv += data2[row];
+                    Logger.log("Adding row to CSV")
+                  }
+                  if (change_row_number != 2) {
+                    ss.getRange(todayTradeInsertValueCol + change_row_number).setValue("SENT");
+                  }
+                
+            }
+          }
+        }
+       csvFile = csv;
+    }
+    catch (err) {
+      Logger.log(err);
+      Browser.msgBox(err);
+    }
+    return [csvFile, name];
     }
 }
+
 
 
 //THIS FUNCTION WORKS FOR ALL CSVS EXCEPT SETTLED TRADES, ADDING A SEPARATE ONE FOR THAT  //called convertToCSVandCreateFilesToFoldersSETTLEDONLY
@@ -552,17 +608,28 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
   var currentTime = d.getHours();
   
   // convert all available sheet data to csv format
-  var csvFile = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol);
-  // create a file in the Docs List with the given name and the csv data
-  var atsNameo = ss.getName().split(" ")[0];
-  var atsName = ss.getName().split(" ")[0].replace("CL","CLEAR").replace("SN","SHARE"); 
-  var outputFileName = ss.getName().replace(atsNameo,'').replace(" ",'').replace(" ",'');
-  
-  try{
+  var csvFile = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol)[0];
+  var atsNameo = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol)[1];
+  Logger.log(atsNameo);
+
+  if (atsNameo=="GTS"){
+    var atsName = atsNameo;
+    var atsNameo = ss.getName().split(" ")[0];
+    var outputFileName = ss.getName().replace(atsNameo,'').replace(" ",'').replace(" ",''); 
     var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
-  } catch (err) {
+    Logger.log(fileName);
+  }else{
+    var atsNameo = ss.getName().split(" ")[0];
+    var atsName = ss.getName().split(" ")[0].replace("CL","CLEAR").replace("SN","SHARE");
+    // create a file in the Docs List with the given name and the csv data
+    var outputFileName = ss.getName().replace(atsNameo,'').replace(" ",'').replace(" ",''); 
+    try{
+      var fileName = atsName+"_"+outputFileName+ "_" + ledgerOutputFilter[0] + "_" + dateFormatted + "_" + currentTime + ".csv";
+      Logger.log(fileName);
+    } catch (err) {
     var fileName = atsName+"_"+outputFileName+ "_" + dateFormatted + "_" + currentTime + ".csv";
     Logger.log(err);
+    }
   }
 
   
@@ -578,6 +645,14 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
 
 function downloadPendingTradesCSVCL(){
   convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePending,todayTradeOutputRange,todayTradeOutputPendingFilter, todayTradeOutputColPendingFilter, todayTradeInsertValueColPending)
+}
+
+function downloadGTSPendingTradesCSV(){
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePendingGTS,todayTradeOutputRange,todayTradeOutputPendingGTSFilter, todayTradeOutputColPendingGTSFilter, todayTradeInsertValueColPendingGTS)
+}
+
+function downloadGTSSettledTradesCSV(){
+  convertToCSVandCreateFilesToFolders(clearlistTradesLedger, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,todayTradeRangePendingGTS,todayTradeOutputRange,todayTradeOutputSettledGTSFilter, todayTradeOutputColSettledGTSFilter, todayTradeInsertValueColSettledGTS)
 }
 
 function downloadPendingTradesCSVSN(){
