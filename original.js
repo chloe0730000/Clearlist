@@ -264,7 +264,6 @@ var todayTradeInsertValueColSettledGTS = "AZ";
 var tradeHistoryOutputPendingGTSFilter = ["PENDING","GTSY","50077"];
 var tradeHistoryOutputSettledGTSFilter = ["SETTLED","GTSY","50077"];
 
-var todayTradeOutputColPendingGTSFilter = [0,3,5,2,4];
 
 
 
