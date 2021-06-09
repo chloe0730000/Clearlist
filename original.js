@@ -263,8 +263,7 @@ var todayTradeInsertValueColSettledGTS = "AZ";
 
 var tradeHistoryOutputPendingGTSFilter = ["PENDING","GTSY","50077"];
 var tradeHistoryOutputSettledGTSFilter = ["SETTLED","GTSY","50077"];
-
-
+var tradeHistoryOutputColPendingGTSFilter = [0,3,5,2,4];
 
 
 function omnibusOnboarding(){
@@ -582,6 +581,8 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
     }else if(todayTradeOutputFilter.length==4){
 
         Logger.log("covert to csv for GTS");
+        Logger.log(todayTradeOutputColFilter[5]);
+
     try {
       var csvFile = undefined;
       var name = "GTS";
@@ -593,6 +594,7 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
             csv += data2[row].join(",") + "\r\n";
             Logger.log("Add title row")
           }
+
           if (data[row][todayTradeOutputColFilter[0]] == todayTradeOutputFilter[0] 
             && (data[row][todayTradeOutputColFilter[5]] != todayTradeOutputFilter[3])
             && ((data[row][todayTradeOutputColFilter[1]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[2]] == todayTradeOutputFilter[1]) | (data[row][todayTradeOutputColFilter[3]] == todayTradeOutputFilter[2]) |(data[row][todayTradeOutputColFilter[4]] == todayTradeOutputFilter[2]))
@@ -742,11 +744,11 @@ function downloadTradingHistoryCSVCL(){
 }
 
 function downloadGTSPendingTradingHistoryCSV(){
-  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputPendingGTSFilter, todayTradeOutputColPendingGTSFilter)
+  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputPendingGTSFilter, tradeHistoryOutputColPendingGTSFilter)
 }
 
 function downloadGTSSettledTradingHistoryCSV(){
-  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputSettledGTSFilter, todayTradeOutputColPendingGTSFilter)
+  convertToCSVandCreateFilesToFolders(clearlistTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange, tradeHistoryOutputSettledGTSFilter, tradeHistoryOutputColPendingGTSFilter)
 }
 
 //CHLOE pls fill in this function
@@ -1192,14 +1194,17 @@ function moveCashAndSecuritiesToHoldingAccounts(ss, totalRows) {
   var ssMasterBalances = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(masterBalancesSheet);
   var customerDataMasterBalances = ssMasterBalances.getRange("C:C").getValues()
 
-
+  Logger.log("I'm here")
   //loop through the trades 
   for (var i = 0; i < data.length; i++) {
+      Logger.log("inside for loop ")
 
     //if all seller and buyer requirements met, proceed to update balance
     if (data[i][okayToSendCSVtoIAColNum] == "YES" && data[i][tradeStatusColNum] == "NEW" && numOfTradesProcessed < maxTradesPerBatch){
       //the following will be used to update the Balances history
       //get trade ID
+      Logger.log("inside if statement ")
+
       var tradeID = (data[i][tradeIDColNum]);
       var buyerID = data[i][buyerIDCol]
       var sellerID = data[i][sellerIDCol]
@@ -1796,7 +1801,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
       var sellerBDID = data[i][sellerBDIDColNumInTodaysTrades]
 
       //identify if buyer uses omnibus account or personal funds
-      var buyerOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerCashAccountColNum)
+      //var buyerOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerCashAccountColNum)
       var buyerHoldingOmniOrPersonal = customerUsesOmnibusOrPersonal(dataCustomerOnboarding,buyerID, customerOnboardingTabCustomerHoldingCashAccountColNum)
 
       //net notional
@@ -1819,8 +1824,10 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
 
       //to be used for Balances History updating
-      var buyerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerOmniOrPersonal)
-      var buyerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerHoldingOmniOrPersonal)
+      var buyerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerID) //using personal as it will receive securities
+      Logger.log("buyer row is "+buyerRow)
+      Logger.log("buyer id is" + buyerID)
+      var buyerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,buyerHoldingOmniOrPersonal) //using omni as cash comes out of holding_omni
       //var sellerRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances, sellerID)
       var sellerHoldingRow = getRowNumberOfCustomerInSpreadsheet(customerDataMasterBalances,sellerHoldingID)
       var sharesQuantity = data[i][sellerSecurityQuantityColNum]
@@ -1892,7 +1899,7 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
         totalRowsBalancesHistory +=1;
 
         //Buyer Sec = +Quantity
-        updateCustomerSecurityBalance(ssMB, dataMB, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerOmniOrPersonal, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
+        updateCustomerSecurityBalance(ssMB, dataMB, buyerRow, sharesQuantity, securityColNumInMB, tradeID, buyerID, operation, securityCUSIP,ssBalancesHistory,totalRowsBalancesHistory)
         totalRowsBalancesHistory +=1;
 
 
@@ -1930,8 +1937,11 @@ function moveCashAndSecuritiesFromHoldingAccountstoCustomersBDsClearlistPaxosSET
 
 }
 
+
+
 //reuse this function for digitization / redemption KATE
 function checkIfEnoughCashAndAssetsInAccounts(dataMB, cashRow, requiredCash, assetRow, securityColNum, requiredSecurities){
+  Logger.log("Starting checkIfEnoughCashAndAssetsInAccounts")
   var sufficient = false
   var currentCashBalance = dataMB[cashRow][3];
   
