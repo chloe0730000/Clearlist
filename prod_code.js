@@ -157,7 +157,7 @@ function displayToastAlert(message) {
 var timeZone = "EST";
 
 var bauFolderId = "1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt";
-var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU"
+var masterIncomingFolderId = "1sp2QzTccc7wJR6l-CQr-5D2S-MNAb4NU";
 var masterOutgoingFolderId = "1Myehii1D3H_sUrvgtuV-yZegp9I1-ru7";
 
 var clearlistMainFolderId = "1eGUYdii_6IOE4hCykEjFw1jDfTqha7cw";
@@ -200,7 +200,11 @@ var todayTradeOutputRange = "B2:R";
 var tradingHistoryOutputRange = "A1:Q";
 var todayTradeOutputPendingFilter = ["PENDING", "SENT"];
 var todayTradeOutputSettledFilter = ["SETTLED", "YES","SENT"];
+
+// index 0: transaction type; index 1: CSV Sent to Issuer Agent? 
 var todayTradeOutputColPendingFilter = [0,33];
+
+// index 0: transaction type; index 1: Okay to Send CSVs & Emails to Issuer Agent + Seller&BD + Buyer&BD? ; index 2: CSV Sent to Issuer Agent? (press button)
 var todayTradeOutputColSettledFilter = [0,45,46];
 var clearlistTradesLedger = "CL Todays Trades";
 var sharenettTradesLedger = "SN Todays Trades";
@@ -283,7 +287,10 @@ function brokerDealerOnboardingNEW(){
 }
 
 
-
+/**
+ * Check row of data in the import sheet meet the filter
+ * If so, ingest to output sheet (master balance sheet)
+ */
 
 function onboardingToMasterBalance(importSheet, outputSheet, rangeInTab, onboardingInputRange, onboardingColFilter, onboardingFilter, startColInOutputSheet,numberColToFillOutputSheet) {
   
@@ -295,10 +302,15 @@ function onboardingToMasterBalance(importSheet, outputSheet, rangeInTab, onboard
   var importss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(importSheet);
   var outputss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(outputSheet);
   var data = importss.getRange(notation).getValues();
+
     try {
         for (var row = 0; row < data.length; row++) {
+
           Logger.log("data[row][onboardingColFilter[0]] "+ data[row][onboardingColFilter[0]])
           Logger.log("onboardingFilter[0] "+ onboardingFilter[0])
+
+          // if the row meet the condition we will process them 
+          // Setting the value of customer name and borkerdealerid from import sheet to the output sheet
           if (data[row][onboardingColFilter[0]] == onboardingFilter[0] ) {
             var customerName = data[row][onboardingColFilter[1]];
             var brokerDealerId = data[row][onboardingColFilter[2]];    
@@ -306,8 +318,9 @@ function onboardingToMasterBalance(importSheet, outputSheet, rangeInTab, onboard
             outputss.getRange(outputSheetTotalRows, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", customerName, brokerDealerId]]);
             outputss.getRange(outputSheetTotalRows+1, startColInOutputSheet,1, numberColToFillOutputSheet).setValues([["OK", "Holding_"+customerName, brokerDealerId]]);
             importss.getRange(row+2,onboardingColFilter[3]).setValue(new Date)
+
+            // since we add 2 new rows so next loop will start after 2 new added row
             outputSheetTotalRows+=2;
-            
           }
       }
     }
@@ -345,16 +358,21 @@ function createFolder(folderID, folderName) {
   };
 };
 
-// reads the contents of the csv and adds them into the sheet line by line 
-// since might have multiple files -> should check where is the last row and append it 
+/**
+ * writeDataToSheet writes data dataToWrite to sheet writeToSheetName line by line
+ */
 function writeDataToSheet(writeToSheetName,rangeInTab, startColInTab, dataToWrite) {
   var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(writeToSheetName);
   var last_rows = getLastRow(writeToSheetName, rangeInTab);
   ss.getRange(last_rows + 1, startColInTab, dataToWrite.length, dataToWrite[0].length).setValues(dataToWrite);
 }
 
+/** 
+ * Reads file of format importFilePattern from masterIncomingFolderId
+ * Writes data from file to google sheet tab writeToSheetName (related function: writeDataToSheet)
+ * Creates YYYY-MM & MM-DD-YYYY folders (if they don't already exist) in the archive folder and moves the csv file to the MM-DD-YYYY folder
+*/
 
-// trade create
 function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolderID, importFilePattern, writeToSheetName, rangeInTab, startColInTab) {
   var mainFolder = DriveApp.getFolderById(masterIncomingFolderId);
   var f = mainFolder.getFiles();
@@ -373,6 +391,9 @@ function importFromCSV(masterIncomingFolderId, mainAtsFolderID, archiveAtsFolder
   while (f.hasNext()) {
     var file = f.next();
     var regExp = new RegExp(importFilePattern)
+
+    // check whether the file in the folder meet the patterns 
+    // if meet the condition then will import the data in csv to sheet and after that will move the imported file to archive folder
 
     if (file.getName().search(regExp) != -1) {
       name = file.getName();
@@ -453,10 +474,9 @@ function importTradesCLNEWOldFormat(){
 
 
 
-
-// today trade make as csv
-
-//this function works for all CSVs !!except SETTLED!!, adding a new one for that called convertToCSV (modify and work for all)
+/**
+ * Converts any range to CSV 
+ */
 function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, todayTradeOutputFilter, todayTradeOutputColFilter, todayTradeInsertValueCol) {
   //var totalRows = ss.getLastRow()
   var totalRows = totalRows + 1; // add first row back 
@@ -651,8 +671,16 @@ function convertToCSVORIGINAL(ss, totalRows, todayTradeRange, outputTradeRange, 
 }
 
 
+/** 
+ * Reads the tab fileToConvertCsv - we are going to make this tab into a CSV. 
+ * Converts the data in the tab to csv with embeded function convertToCSVORIGINAL -> by using this function we will transform the data in the tab to csv 
+ * The CSV will be stored in the folders: fileOutputFolderId1 and fileOutputFolderId2
+ * Currently use this function to store the csv in BAU folder and our Outgoing folder (which can be specified in the dynamic variables, i.e. CSV gets saved to Clearlist-prod-data> Outgoing folder and also gets saved to Operations > BAU> YYYY-MM > YYYY-MM-DD > Trading_History_Export)
+ * Note: csv name is created according to the following logic: get the file name of the tab we are reading, insert underscores in all empty spaces, add PENDING or SETTLED where appropriate, add the date. (i.e. if it's "CL
+ Todays Trades" tab turns into csv CLEAR_TodaysTrades_SETTLED_20210528_10)
+*/
 
-//THIS FUNCTION WORKS FOR ALL CSVS EXCEPT SETTLED TRADES, ADDING A SEPARATE ONE FOR THAT  //called convertToCSVandCreateFilesToFoldersSETTLEDONLY
+
 function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileOutputFolderId1, fileOutputFolder1Name, fileOutputFolderId2, ledgerRange, ledgerOutputRange, ledgerOutputFilter,ledgerOutputColFilter, ledgerInsertValueCol) {
 
   Logger.log("Start function convertTodaysTradeIntoCSVWithNEWTradesOnly")
@@ -673,11 +701,12 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
   var d = new Date();
   var currentTime = d.getHours();
   
-  // convert all available sheet data to csv format
+  // convert all available sheet data to csv format and get the sheet name
   var csvFile = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol)[0];
   var atsNameo = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange, ledgerOutputFilter, ledgerOutputColFilter, ledgerInsertValueCol)[1];
   Logger.log(atsNameo);
 
+  // create output file name by using the import sheet tab name (get from previous step) + filter (i.e. pending/settled) + datetime
   if (atsNameo=="GTS"){
     var atsName = atsNameo;
     var atsNameo = ss.getName().split(" ")[0];
@@ -698,7 +727,7 @@ function convertToCSVandCreateFilesToFolders(fileToConvertCsv, rangeInTab, fileO
     }
   }
 
-  
+  // put the generated csv file to those folders
   var file = dest_folder.createFile(fileName, csvFile);
   var file_output2 = clearlist_outgoing_folder.createFile(fileName, csvFile);
   Logger.log("End function convertTodaysTradeIntoCSVWithNEWTradesOnly")
@@ -757,7 +786,6 @@ function downloadGTSPositions(){
   convertToCSVandCreateFilesToFolders(positionsGTS,rangeInPositions,bauFolderId,positionsOutputFolderName,masterOutgoingFolderId,rangeUndefined,rangeForCSVInPositioins) 
 }
 
-//CHLOE pls fill in this function
 /***
  * Converts range A:Q in CL Trading History into a CSV with name CLEAR_TradingHistory_YYYYMMDD.csv
  * CSV gets saved to Clearlist-prod-data> Outgoing folder 
@@ -785,6 +813,11 @@ function downloadTradingHistoryCSVSN(){
   convertToCSVandCreateFilesToFolders(sharenettTradingHistory, rangeInTradeTab, bauFolderId, todaytradeoutputFolderName, masterOutgoingFolderId,tradingHistoryOutputRange,tradingHistoryOutputRange)
 }
 
+
+/*
+download trading history as CSV and store the csv in bau folder and our master folder
+and move trade from trading history to todays trade
+*/
 function eodTradingHistoryCL(){
   downloadTradingHistoryCSVCL()
   moveTradesFromCLTradingHistoryToCLTodaysTradesAtEOD()
@@ -793,6 +826,70 @@ function eodTradingHistoryCL(){
 function eodTradingHistorySN(){
   downloadTradingHistoryCSVSN()
   moveTradesFromSNTradingHistoryToSNTodaysTradesAtEOD()
+}
+
+
+
+/**
+ * Downloads a CSV from tab fileToConvertCSV
+ * Saves CSV into fileOutputFolderID1
+ * Cleans the range ledgerRange
+ */
+function convertToCSVandCreateFilesToOneFolderAndClearRange(fileToConvertCsv, rangeInTab, fileOutputFolderId1,
+  ledgerRange, ledgerOutputRange) {
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(fileToConvertCsv);
+  var totalRows = getLastRow(fileToConvertCsv, rangeInTab);
+
+  var dest_folder = DriveApp.getFolderById(fileOutputFolderId1);
+
+  var timeZone = "EST";
+  var dateFormatted = Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd");
+  var d = new Date();
+  var currentTime = d.getHours();
+  
+  // convert all available sheet data to csv format
+  var csvFile = convertToCSVORIGINAL(ss,totalRows, ledgerRange, ledgerOutputRange);
+
+  var outputFileName = ss.getName(); 
+  var fileName = outputFileName + " " +dateFormatted + "-" + currentTime + ".csv";
+
+  var file = dest_folder.createFile(fileName, csvFile);
+  
+  ss.getRange(ledgerRange).clearContent();
+}
+
+
+/**
+ * Downloads a CSVs of specified output range into the BAU folder 
+ * Cleans the tab from which the content was downloaded. The headers remain in the tab
+ */
+function downloadAndClearBH(){
+  var balancesHistorySheet = "Balances History";
+  var rangeInbalancesHistory = "A:A";
+  var balancesHistoryFolderId = '1tigbzVMTlv1RTgQy4y6QcOrN9pMW3obz';
+  var balancesHistoryRangeToClear = 'A2:H'
+  var balancesHistoryFolderIdOutputRange = 'A1:H';
+  convertToCSVandCreateFilesToOneFolderAndClearRange(balancesHistorySheet, rangeInbalancesHistory, balancesHistoryFolderId, balancesHistoryRangeToClear, balancesHistoryFolderIdOutputRange);
+}
+
+function downloadAndClearTAC(){
+  var tacSheet = "TAC";
+  var rangeInTAC = "A:A";
+  var tacFolderId = '1hTrT0GY-wItgau6xOVj9fSLVdKyHF_IZ';
+  var tacRangeToClear = 'A2:C'
+  var tacOutputRange = 'A1:C';
+  convertToCSVandCreateFilesToOneFolderAndClearRange(tacSheet, rangeInTAC, tacFolderId, tacRangeToClear, tacOutputRange);
+}
+
+function downloadAndClearLifecycle(){
+  var lifecycleSheet = "LIFECYCLE";
+  var rangeLifecycle = "A:A"
+  var lifecycleFolderId = '1NmjxEexTGiT_kBKU0_uRPNDYUCSi6yrA';
+  var lifecycleRangeToClear = 'A2:J'
+  var lifecycleOutputRange = 'A1:J';
+
+  convertToCSVandCreateFilesToOneFolderAndClearRange(lifecycleSheet, rangeLifecycle, lifecycleFolderId, lifecycleRangeToClear, lifecycleOutputRange);
 }
 
 
@@ -806,16 +903,27 @@ function eodTradingHistorySN(){
 //MOVING TRADE DATA FROM TRADE CREATE TO TODAYS TRADES  
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** 
+ * Moves information from tabFrom to tabTo. 
+ * Information is added to existing data in tabTo 
+ * Clears data in tabFrom given rangeToClearTabFrom. 
+*/
 
 function moveTradesNew(tabFrom, rowsInTabFrom, startingIndexInTabFrom, startingColInTabFrom, lastColInTabFrom, tabTo, rowsInTabTo,  startingColTabTo,rowIndexTabTo, colIndexTabTo, rangeToClearTabFrom){
+
   for (var i = startingIndexInTabFrom; i <= rowsInTabFrom; i++) {
+
     //gets values from tabFrom in a specified range
     var values = tabFrom.getRange(startingColInTabFrom + i + ":"+ lastColInTabFrom + i).getValues();
+
     //populates tabTo with the values defined in the previous line 
     tabTo.getRange(rowsInTabTo, startingColTabTo, rowIndexTabTo, colIndexTabTo).setValues(values);
+    
     //adds 1 to the variable lastrow in order to make sure that the information from the next trade is written into the next row
     rowsInTabTo +=1
+    
   }
+
   //clears specified range in tabFrom 
   tabFrom.getRange(rangeToClearTabFrom).clearContent();
 }
@@ -882,7 +990,7 @@ function assignSNUniqueSeqRefID(){
   assignUniqueSequenceRefID(ss,lastRow)
 }
 
-//assigns unique ID to newly imported trades using the trade ID and dateTime
+//assigns unique ID (Create unique ID -> MMddyyyyHHmmss + transaction ID) to newly imported trades using the trade ID and dateTime
 //used when trades are moved from Trade Create to Todays Trades
 function assignUniqueSequenceRefID(ss, lastRow) {
   var dateFormatted = Utilities.formatDate(new Date(), 'America/New_York', 'MMddyyyyHHmmss');  
@@ -1018,6 +1126,9 @@ function moveTradesFromSNTradingHistoryToSNTodaysTradesAtEOD(){
 }
 
 
+/*
+Move data that meets condition from tab to another tab
+*/
 function moveTradesWithChecks(nameTabFrom, nameTabTo, colToCheckRowsTabFrom, colToCheckRowsTabTo,range1TabFrom,range2TabFrom,check1, check2, rangeToClearTabFrom ){
    var ssTabFrom = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nameTabFrom);
   var ssTabTo = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nameTabTo);
@@ -1075,8 +1186,6 @@ function importFromCSVForTAC_CreateFolder_MoveFileToArchive() {
   var todaydatefolderid_bau = createFolder("1s132fsm3mrJX47MLEBzGdVtcCWKLtjbt", todaydatefolder);
   var uploadtacfolderid = createFolder(todaydatefolderid_bau, "TAC_Files");
   var dest_bau_tac_folder = DriveApp.getFolderById(uploadtacfolderid);
-
-
 
   while (f.hasNext()) {
     var file = f.next();
